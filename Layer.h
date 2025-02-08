@@ -6,9 +6,13 @@ namespace MiniBrain {
     {
     private:
         /* data */
+    protected:
+        int m_inSize,m_outSize;
     public:
-        Layer(/* args */) {}
-        ~Layer() {}
+        Layer(int inSize,int OutSize):m_inSize(inSize),m_outSize(OutSize)
+        {}
+        virtual~Layer() {}
+
     };
     
 }
