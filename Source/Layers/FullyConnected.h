@@ -13,9 +13,7 @@ namespace MiniBrain
         //bias的导数
         Vector m_db;
 
-        //合并格式，z=w*x+b
-        Matrix m_z;
-        //当前层的输出
+        //合并格式，z=w*x+b,当前层的输出
         Matrix m_out;
         //输入端的导数
         Matrix m_din;
@@ -41,5 +39,7 @@ namespace MiniBrain
             m_dw.resize(m_inSize,m_outSize);
             m_db.resize(m_outSize);
         }
+
+        virtual std::string GetSubType()const override{return "FullyConnected";}
     };
 }

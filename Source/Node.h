@@ -12,5 +12,6 @@ namespace MiniBrain {
             virtual ~Node(){}
             
             virtual std::string GetType()const {return "Node";}
+            virtual std::string GetSubType()const{return "";}
     };
 }

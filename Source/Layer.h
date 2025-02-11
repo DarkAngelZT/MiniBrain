@@ -25,7 +25,7 @@ namespace MiniBrain {
 
         virtual void Update() = 0;
 
-        virtual std::string GetType()const override {return "Layer";}
+        virtual std::string GetType()const override {return "Layer";}        
     };
     
 }
