@@ -25,6 +25,10 @@ namespace MiniBrain {
 
         virtual void Update() = 0;
 
+        virtual std::vector<float> get_parameters() const = 0;
+
+        virtual void set_parameters(const std::vector<float>& param) {};
+
         virtual std::string GetType()const override {return "Layer";}        
     };
     

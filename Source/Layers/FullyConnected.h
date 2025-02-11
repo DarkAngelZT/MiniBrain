@@ -1,3 +1,4 @@
+#pragma once
 #include "../Eigen/Dense"
 #include "../Layer.h"
 
@@ -15,7 +16,7 @@ namespace MiniBrain
 
         //合并格式，z=w*x+b,当前层的输出
         Matrix m_out;
-        //输入端的导数
+        //输入端的反向传播输出
         Matrix m_din;
 
     public:
@@ -38,6 +39,50 @@ namespace MiniBrain
             m_bias.resize(m_outSize);
             m_dw.resize(m_inSize,m_outSize);
             m_db.resize(m_outSize);
+        }
+
+        virtual void Forward(const Matrix& InData) override
+        {
+            const int nobs = InData.cols();
+            //out = w .* in + b
+            m_out.resize(m_outSize, nobs);
+            m_out.noalias() = m_weight.transpose()*InData;
+            m_out.colwise() += m_bias;
+        }
+
+        virtual void Backward(const Matrix& LastLayerData,const Matrix& NextLayerData) override
+        {
+            const int nobs = LastLayerData.cols();
+            // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
+            m_dw.noalias() = LastLayerData * NextLayerData.transpose() / nobs;
+            // Derivative for bias, d(L) / d(b) = d(L) / d(z)
+            m_db.noalias() = NextLayerData.rowwise().mean();
+            // Compute d(L) / d_in = W * [d(L) / d(z)]
+            m_din.resize(m_inSize,nobs);
+            m_din.noalias() = m_weight * NextLayerData;
+        }
+
+        virtual void Update() override
+        {
+
+        }
+
+        virtual std::vector<float> get_parameters()
+        {
+            std::vector<float> params(m_weight.size()+m_bias.size());
+            std::copy(m_weight.data(),m_weight.data()+static_cast<int>(m_weight.size()),params.begin());
+            std::copy(m_bias.data(),m_bias.data()+static_cast<int>(m_bias.size()),params.begin()+m_weight.size());
+            return params;
+        }
+
+        virtual void set_parameters(const std::vector<float>& param) 
+        {
+            if (static_cast<int>(param.size())!=m_weight.size()+m_bias.size())
+            {
+                return;
+            }
+            std::copy(param.begin(),param.begin()+static_cast<int>(m_weight.size()),m_weight.data());
+            std::copy(param.begin()+static_cast<int>(m_weight.size()),param.end(),m_bias.data());
         }
 
         virtual std::string GetSubType()const override{return "FullyConnected";}

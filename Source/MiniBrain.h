@@ -8,3 +8,6 @@
 #include "Layers/FullyConnected.h"
 
 #include "Activation.h"
+#include "Activations/Mish.h"
+#include "Activations/ReLU.h"
+#include "Activations/Tanh.h"
