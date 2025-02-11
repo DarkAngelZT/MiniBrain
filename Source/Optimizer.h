@@ -3,6 +3,7 @@
 
 namespace MiniBrain
 {
+    typedef Eigen::ArrayXf Array;
     typedef Eigen::VectorXf::ConstAlignedMapType ConstAlignedMapVec;
     typedef Eigen::VectorXf::AlignedMapType AlignedMapVec;
 
