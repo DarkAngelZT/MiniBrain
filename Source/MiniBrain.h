@@ -11,3 +11,6 @@
 #include "Activations/Mish.h"
 #include "Activations/ReLU.h"
 #include "Activations/Tanh.h"
+
+#include "Optimizer.h"
+#include "Optimizer/Adam.h"

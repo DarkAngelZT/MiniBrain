@@ -2,6 +2,8 @@
 #include "Node.h"
 
 namespace MiniBrain {
+    class Optimizer;
+    
     class Layer: public Node
     {
     private:
@@ -23,7 +25,7 @@ namespace MiniBrain {
 
         virtual const Matrix& GetBackpropData() const = 0;
 
-        virtual void Update() = 0;
+        virtual void Update(Optimizer& opt) = 0;
 
         virtual std::vector<float> get_parameters() const = 0;
 

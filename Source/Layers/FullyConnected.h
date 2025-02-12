@@ -1,6 +1,7 @@
 #pragma once
 #include "../Eigen/Dense"
 #include "../Layer.h"
+#include "../Optimizer.h"
 
 namespace MiniBrain
 {
@@ -62,9 +63,14 @@ namespace MiniBrain
             m_din.noalias() = m_weight * NextLayerData;
         }
 
-        virtual void Update() override
+        virtual void Update(Optimizer&opt) override
         {
-
+            ConstAlignedMapVec dw(m_dw.data(),m_dw.size());
+            ConstAlignedMapVec db(m_db.data(),m_db.size());
+            AlignedMapVec weight(m_weight.data(), m_weight.size());
+            AlignedMapVec bias(m_bias.data(),m_bias.size());
+            opt.Update(dw, weight);
+            opt.Update(db, bias);
         }
 
         virtual std::vector<float> get_parameters()
