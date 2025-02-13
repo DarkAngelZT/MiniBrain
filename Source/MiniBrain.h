@@ -14,3 +14,9 @@
 
 #include "Optimizer.h"
 #include "Optimizer/Adam.h"
+
+#include "LossFunc.h"
+#include "LossFunc/RegressionMSE.h"
+#include "LossFunc/CrossEntropy.h"
+
+#include "Network.h"

@@ -85,7 +85,7 @@ namespace MiniBrain
         {
             if (static_cast<int>(param.size())!=m_weight.size()+m_bias.size())
             {
-                return;
+                throw std::invalid_argument("FullyConnected: parameter size mismatch");
             }
             std::copy(param.begin(),param.begin()+static_cast<int>(m_weight.size()),m_weight.data());
             std::copy(param.begin()+static_cast<int>(m_weight.size()),param.end(),m_bias.data());

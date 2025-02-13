@@ -4,6 +4,7 @@
 namespace MiniBrain
 {
     typedef Eigen::ArrayXf Array;
+    //内存对齐映射，业务逻辑跟直接访问vector一样，只是效率更高
     typedef Eigen::VectorXf::ConstAlignedMapType ConstAlignedMapVec;
     typedef Eigen::VectorXf::AlignedMapType AlignedMapVec;
 
