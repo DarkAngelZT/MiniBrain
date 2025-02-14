@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
 #include "ComputeNode.h"
+#include <vector>
 
 namespace MiniBrain {
     class Optimizer;

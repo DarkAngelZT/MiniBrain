@@ -4,6 +4,7 @@
 #include "Activation.h"
 #include "LossFunc.h"
 #include "Optimizer.h"
+#include <vector>
 
 namespace MiniBrain
 {
