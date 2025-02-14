@@ -1,13 +1,10 @@
 #pragma once
+#include "TypeDef.h"
 #include "Node.h"
 #include "Eigen/Dense"
 
 namespace MiniBrain
 {
-    typedef Eigen::MatrixXf Matrix;
-    typedef Eigen::VectorXf Vector;
-    typedef Eigen::RowVectorXi IntVector;
-
     class LossFunc : public Node
     {
     protected:

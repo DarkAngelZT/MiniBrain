@@ -73,7 +73,7 @@ namespace MiniBrain
             opt.Update(db, bias);
         }
 
-        virtual std::vector<float> get_parameters()
+        virtual std::vector<float> GetParameters() const override
         {
             std::vector<float> params(m_weight.size()+m_bias.size());
             std::copy(m_weight.data(),m_weight.data()+static_cast<int>(m_weight.size()),params.begin());
@@ -81,7 +81,7 @@ namespace MiniBrain
             return params;
         }
 
-        virtual void set_parameters(const std::vector<float>& param) 
+        virtual void SetParameters(const std::vector<float>& param) override
         {
             if (static_cast<int>(param.size())!=m_weight.size()+m_bias.size())
             {

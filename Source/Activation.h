@@ -1,8 +1,10 @@
 #pragma once
+#include "ComputeNode.h"
+#include "TypeDef.h"
 #include "Node.h"
 
 namespace MiniBrain{
-    class Activation: public Node
+    class Activation: public IComputeNode
     {
     protected:
         /* data */
@@ -12,13 +14,15 @@ namespace MiniBrain{
         Activation(/* args */) {}
         ~Activation() {}
 
-        virtual void Forward(const Matrix& InData) = 0;
+        virtual const Matrix& Output() const override
+        {
+            return m_out;
+        }
 
-        virtual const Matrix& Output() {return m_out;}
-
-        virtual void Backward(const Matrix& InData,const Matrix& NextLayerData) = 0;
-
-        virtual const Matrix& GetBackpropData() {return m_din;}
+        virtual const Matrix& GetBackpropData() const override
+        {
+            return m_din;
+        }
 
         virtual std::string GetType()const override {return "Activation";}
     };

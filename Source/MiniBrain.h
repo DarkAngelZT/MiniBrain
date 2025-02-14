@@ -2,7 +2,9 @@
 
 #include "Eigen/Core"
 
+#include "TypeDef.h"
 #include "Node.h"
+#include "ComputeNode.h"
 
 #include "Layer.h"
 #include "Layers/FullyConnected.h"

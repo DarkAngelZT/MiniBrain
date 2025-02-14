@@ -1,11 +1,11 @@
 #pragma once
 #include "Eigen/Dense"
 
-namespace MiniBrain {
-    typedef Eigen::MatrixXf Matrix;
-    typedef Eigen::VectorXf Vector;
+namespace MiniBrain 
+{
     
-    class Node {
+    class Node 
+    {
         public:
             Node(){}
 
@@ -13,5 +13,5 @@ namespace MiniBrain {
             
             virtual std::string GetType()const {return "Node";}
             virtual std::string GetSubType()const{return "";}
-    };
+    };    
 }

@@ -1,12 +1,23 @@
 #include <iostream>
-#include "Eigen/Dense"
+#include "Source/MiniBrain.h"
+using namespace MiniBrain;
 
 int main(int argc, char const *argv[])
 {
-    Eigen::MatrixXf m(2,2);
-    m<<1,2,
-    3,4;
+    Network nn;
+    Layer* layer1 = new FullyConnected(3,5);
+    Layer* layer2 = new FullyConnected(5,1);
 
-    std::cout<<"m: "<<m<<std::endl;
+    Activation* a1 = new ReLU();
+    
+    nn.AddLayer(layer1);
+    nn.AddLayer(a1);
+    nn.AddLayer(layer2);
+
+    nn.SetLossFunc(new RegressionMSE());
+
+    Adam opt;
+
+    
     return 0;
 }

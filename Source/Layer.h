@@ -1,10 +1,11 @@
 #pragma once
 #include "Node.h"
+#include "ComputeNode.h"
 
 namespace MiniBrain {
     class Optimizer;
     
-    class Layer: public Node
+    class Layer: public IComputeNode
     {
     private:
         /* data */
@@ -15,21 +16,16 @@ namespace MiniBrain {
         {}
         virtual~Layer() {}
 
+        int GetInSize() const {return m_inSize;}
+        int GetOutSize() const {return m_outSize;}
+
         virtual void Init() = 0;
-
-        virtual void Forward(const Matrix& InData) = 0;
-
-        virtual const Matrix& Output() const = 0;
-
-        virtual void Backward(const Matrix& LastLayerData,const Matrix& NextLayerData) = 0;
-
-        virtual const Matrix& GetBackpropData() const = 0;
 
         virtual void Update(Optimizer& opt) = 0;
 
-        virtual std::vector<float> get_parameters() const = 0;
+        virtual std::vector<float> GetParameters() const = 0;
 
-        virtual void set_parameters(const std::vector<float>& param) {};
+        virtual void SetParameters(const std::vector<float>& param) {};
 
         virtual std::string GetType()const override {return "Layer";}        
     };

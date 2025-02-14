@@ -39,6 +39,7 @@ namespace MiniBrain
         virtual void Update(ConstAlignedMapVec& dvec, AlignedMapVec& vec) override
         {
             // Get the m and v vectors associated with this gradient
+            //according to stl, map will create default element if doesn't exist
             Array& mvec = m_history_m[dvec.data()];
             Array& vvec = m_history_v[dvec.data()];
             //init if len = 0
@@ -63,7 +64,7 @@ namespace MiniBrain
             // update parameters
             vec.array() -= (m_learnRate * correct1) * mvec / (correct2 * vvec.sqrt() + m_eps);
             m_beta_1t *= m_beta1;
-            m_beta_2t *- m_beta2;
+            m_beta_2t *= m_beta2;
         }
     };
 } // namespace MiniBrain
