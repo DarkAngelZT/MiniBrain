@@ -13,6 +13,8 @@ namespace MiniBrain
     protected:
         std::vector<IComputeNode *> m_layers;
         LossFunc *m_lossFunc=nullptr;
+        Random m_defaultRNG;
+        Random& m_rng;
 
         bool CheckUnitSize() const
         {
@@ -115,8 +117,9 @@ namespace MiniBrain
         }
 
     public:
-        Network(/* args */) :
-            m_lossFunc(nullptr)
+        Network() :
+            m_lossFunc(nullptr),
+            m_rng(m_defaultRNG)
         {}
         ~Network() 
         {
@@ -128,6 +131,24 @@ namespace MiniBrain
             {
                 delete m_lossFunc;
             }
+        }
+
+        void Init(const float& mu=0.f, const float& sigma=1.f)
+        {
+            if(!CheckUnitSize())
+            {
+                throw std::invalid_argument("[Network]Layer size mismatch");
+            }
+            const int nLayers = GetLayerAmount();
+            
+            for (int i = 0; i < nLayers; i++)
+            {
+                if (m_layers[i]->GetType()=="Layer")
+                {
+                    dynamic_cast<Layer*>(m_layers[i])->Init(mu,sigma,m_rng);
+                }                
+            }
+            
         }
 
         void AddLayer(IComputeNode *layer)
@@ -163,5 +184,6 @@ namespace MiniBrain
 
             return m_layers[nLayer-1]->Output();
         }
+        
     };
 } // namespace MiniBrain

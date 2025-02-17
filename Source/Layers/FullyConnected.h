@@ -43,6 +43,13 @@ namespace MiniBrain
             m_db.resize(m_outSize);
         }
 
+        virtual void Init(const float& mu, const float& sigma, Random& RNG) override
+        {
+            Init();
+            RNG.SetNormalDistRandom(m_weight.data(),m_weight.size(),mu,sigma);
+            RNG.SetNormalDistRandom(m_bias.data(),m_bias.size(),mu,sigma);
+        }
+
         virtual void Forward(const Matrix& InData) override
         {
             const int nobs = InData.cols();

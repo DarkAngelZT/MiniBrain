@@ -19,6 +19,6 @@ namespace MiniBrain
 
         virtual float GetLoss() const = 0;
 
-        virtual std::string GetType() {return "LossFunc";}
+        virtual std::string GetType() const override {return "LossFunc";}
     };
 }

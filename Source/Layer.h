@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
 #include "ComputeNode.h"
+#include "Random.h"
 #include <vector>
 
 namespace MiniBrain {
@@ -21,6 +22,8 @@ namespace MiniBrain {
         int GetOutSize() const {return m_outSize;}
 
         virtual void Init() = 0;
+
+        virtual void Init(const float& mu, const float& sigma, Random& RNG) = 0;
 
         virtual void Update(Optimizer& opt) = 0;
 

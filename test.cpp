@@ -5,8 +5,8 @@ using namespace MiniBrain;
 int main(int argc, char const *argv[])
 {
     Network nn;
-    Layer* layer1 = new FullyConnected(3,5);
-    Layer* layer2 = new FullyConnected(5,1);
+    Layer* layer1 = new FullyConnected(4,6);
+    Layer* layer2 = new FullyConnected(6,2);
 
     Activation* a1 = new ReLU();
     
@@ -18,6 +18,13 @@ int main(int argc, char const *argv[])
 
     Adam opt;
 
+    nn.Init(0,0.01);
+
+    Matrix x = Matrix::Random(4,2);
+
+    Matrix output = nn.Predict(x);
+
+    std::cout<< output<<std::endl;
     
     return 0;
 }
