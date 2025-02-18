@@ -23,7 +23,7 @@ namespace MiniBrain
         // out = J * f = (1 - a^2) .* f
         virtual void Backward(const Matrix& InData,const Matrix& NextLayerData) override
         {
-            m_din.array() = (float(1) - InData.array().square())*NextLayerData.array();
+            m_din.array() = (float(1) - m_out.array().square())*NextLayerData.array();
         }
 
         virtual std::string GetSubType()const override{return "Tanh";}

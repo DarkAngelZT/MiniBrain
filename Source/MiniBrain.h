@@ -13,6 +13,7 @@
 #include "Activations/Mish.h"
 #include "Activations/ReLU.h"
 #include "Activations/Tanh.h"
+#include "Activations/Sigmoid.h"
 
 #include "Optimizer.h"
 #include "Optimizer/Adam.h"

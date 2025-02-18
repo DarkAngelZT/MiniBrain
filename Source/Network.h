@@ -16,6 +16,7 @@ namespace MiniBrain
         Random m_defaultRNG;
         Random& m_rng;
 
+    public:
         bool CheckUnitSize() const
         {
             const int numLayer = GetLayerAmount();
@@ -116,7 +117,6 @@ namespace MiniBrain
             }            
         }
 
-    public:
         Network() :
             m_lossFunc(nullptr),
             m_rng(m_defaultRNG)

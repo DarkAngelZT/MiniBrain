@@ -21,10 +21,17 @@ int main(int argc, char const *argv[])
     nn.Init(0,0.01);
 
     Matrix x = Matrix::Random(4,2);
+    Matrix y = Matrix::Random(2,2);
 
     Matrix output = nn.Predict(x);
 
-    std::cout<< output<<std::endl;
+    nn.Backward(x,y);
+    nn.Update(opt);
+
+    Matrix output2 = nn.Predict(x);
+
+    std::cout<<"target:\n"<<y<<std::endl<<"before:\n";
+    std::cout<< output<<std::endl<<"after:\n"<<output2<<std::endl;
     
     return 0;
 }
