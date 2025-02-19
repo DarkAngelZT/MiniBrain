@@ -19,6 +19,11 @@ namespace MiniBrain
         Matrix m_bias_z;
         Matrix m_bias_r;
         Matrix m_bias_h;
+
+        Matrix m_dz,m_dr,m_dh;
+        Matrix m_dWz,m_dWr,m_dWh;
+        Matrix m_dUz,m_dUr,m_dUz;
+        Matrix m_din;
     public:
         GRU (int inSize,int OutSize):Layer(inSize,OutSize)
         {
@@ -26,5 +31,14 @@ namespace MiniBrain
         }
         ~GRU () {}
 
+        virtual void Forward(const Matrix& InData) override
+        {
+
+        }
+
+        virtual void Backward(const Matrix& InData, const Matrix& BackpropData) override
+        {
+
+        }
     };
 } // namespace MiniBrain
