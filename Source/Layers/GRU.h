@@ -21,12 +21,7 @@ namespace MiniBrain
         Matrix m_Uz;
         Matrix m_Ur;
         Matrix m_Uh;
-
-        Vector m_bias_z;
-        Vector m_bias_r;
-        Vector m_bias_h;
-
-        Matrix m_dz,m_dr,m_dh;
+        
         Matrix m_dWz,m_dWr,m_dWh;
         Matrix m_dUz,m_dUr,m_dUh;
         Matrix m_din;
@@ -46,30 +41,40 @@ namespace MiniBrain
         {
             const int nobs = InData.cols();
             //out = w .* in + b
-            m_h.resize(m_outSize, nobs);
             m_h_prev = m_h;
-            m_z.noalias() = Sigmoid(m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev + m_bias_z);
-            m_r.noalias() = Sigmoid(m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev + m_bias_r);
-            m_h_tilde.array() = (m_weight_h.transpose() * InData + m_Ur.transpose() * (m_r.array() * m_h_prev.array()).matrix() + m_bias_h).array().tanh();
+            m_z.noalias() = Sigmoid(m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev);
+            m_r.noalias() = Sigmoid(m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev);
+            m_h_tilde.array() = (m_weight_h.transpose() * InData + m_Ur.transpose() * (m_r.array() * m_h_prev.array()).matrix()).array().tanh();
             m_h.array() = (1.0f - m_z.array())*m_h_prev.array() + m_z.array()*m_h_tilde.array();
         }
 
         virtual void Backward(const Matrix& InData, const Matrix& BackpropData) override
         {
+            const int nobs = InData.cols();
+            Matrix m_dz(m_inSize,nobs),m_dr(m_inSize,nobs),m_dh(m_inSize,nobs);
             m_dz.array() = BackpropData.array() * (m_h_tilde.array() - m_h.array()) * m_z.array() * (1.0f-m_z.array());
             m_dh.array() = BackpropData.array() * m_z.array() * (1.0f-m_h_tilde.array().square());
-            m_dr.array() = (m_weight_h.transpose()*m_dh).array()*m_h.array()*m_r.array()*(1.0f-m_r.array());
+            m_dr.array() = (m_dh.transpose() * m_weight_h.transpose()).array()*m_h.array()*m_r.array()*(1.0f-m_r.array());
+            
+            m_dWh.resize(m_inSize,nobs);
+            m_dUh.resize(m_inSize,nobs);
+            m_dWr.resize(m_inSize,nobs);
+            m_dUr.resize(m_inSize,nobs);
+            m_dWz.resize(m_inSize,nobs);
+            m_dUz.resize(m_inSize,nobs);
 
-            m_dWh = m_dh.transpose() * InData.transpose();
-            m_dUh = m_dh.transpose() * (m_r.array()*m_h.array()).matrix().transpose();
-            m_dWr = m_dr.transpose() * InData.transpose();
-            m_dUr = m_dr.transpose() * m_h.transpose();
-            m_dWz = m_dz.transpose() * InData.transpose();
-            m_dUz = m_dz.transpose() * m_h.transpose();
+            //dot(x.T, dh) = x.T.T*dh
+            m_dWh.noalias() = InData * m_dh;
+            m_dUh.noalias() = (m_r.array()*m_h.array()).matrix().transpose() * m_dh;
+            m_dWr.noalias() = InData * m_dr;
+            //dot(m_h.T, m_dr) = m_h.T.T*m_dr
+            m_dUr.noalias() = m_h * m_dr;
+            m_dWz.noalias() = InData * m_dz;
+            //dot(m_h.T, m_dz) = m_h.T.T*m_dz
+            m_dUz.noalias() = m_h * m_dz;
 
-            //dx = dot(uh.T,dh) + dot(ur.T,dr) + dot(uz.T, dz)
-            //dot(Uh.t,dh) = Uh.T.T * dh
-            m_din = m_Uh * m_dh + m_Ur * m_dr + m_Uz * m_dz;
+            m_din.resize(m_inSize,nobs);
+            m_din.noalias() = m_Uh * m_dh + m_Ur * m_dr + m_Uz * m_dz;
         }
 
         virtual const Matrix& Output() const override
@@ -90,16 +95,17 @@ namespace MiniBrain
             m_Uz.resize(m_outSize,m_outSize);
             m_Ur.resize(m_outSize,m_outSize);
             m_Uh.resize(m_outSize,m_outSize);
-            m_bias_z.resize(m_outSize);
-            m_bias_r.resize(m_outSize);
-            m_bias_h.resize(m_outSize);
+
             m_h_prev.resize(m_outSize,1);
-            m_dWz.resize(m_inSize,m_outSize);
-            m_dWr.resize(m_inSize,m_outSize);
-            m_dWh.resize(m_inSize,m_outSize);
-            m_dUz.resize(m_outSize,m_outSize);
-            m_dUr.resize(m_outSize,m_outSize);
-            m_dUz.resize(m_outSize,m_outSize);
+            m_h_tilde.resize(m_outSize,1);
+            m_h.resize(m_outSize,1);
+
+            m_dWz.resize(m_inSize,1);
+            m_dWr.resize(m_inSize,1);
+            m_dWh.resize(m_inSize,1);
+            m_dUz.resize(m_inSize,1);
+            m_dUr.resize(m_inSize,1);
+            m_dUz.resize(m_inSize,1);
             m_din.resize(m_inSize,1);
         }
 
@@ -112,9 +118,6 @@ namespace MiniBrain
             RNG.SetNormalDistRandom(m_Uz.data(),m_Uz.size(),mu,sigma);
             RNG.SetNormalDistRandom(m_Ur.data(),m_Ur.size(),mu,sigma);
             RNG.SetNormalDistRandom(m_Uh.data(),m_Uh.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_bias_z.data(),m_bias_z.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_bias_r.data(),m_bias_r.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_bias_h.data(),m_bias_h.size(),mu,sigma);
         }
 
         virtual void Update(Optimizer& opt) override
@@ -131,9 +134,24 @@ namespace MiniBrain
             opt.Update(ConstAlignedMapVec(m_dUz.data(), m_dUz.size()), Uz);
             opt.Update(ConstAlignedMapVec(m_dUr.data(), m_dUr.size()), Ur);
             opt.Update(ConstAlignedMapVec(m_dUh.data(), m_dUh.size()), Uh);
-            // opt.Update(ConstAlignedMapVec(m_dbias_z.data(), m_dbias_z.size()), ConstAlignedMapVec(m_bias_z.data(), m_bias_z.size()));
-            // opt.Update(ConstAlignedMapVec(m_dbias_r.data(), m_dbias_r.size()), ConstAlignedMapVec(m_bias_r.data(), m_bias_r.size()));
-            // opt.Update(ConstAlignedMapVec(m_dbias_h.data(), m_dbias_h.size()), ConstAlignedMapVec(m_bias_h.data(), m_bias_h.size()));
+        }
+
+        void SetBatchSize(int Size)
+        {
+            //隐状态数据比较特殊，不能随意改变batch大小，否则会导致数据丢失
+            m_h.resize(m_outSize, Size);
+            m_h_prev.resize(m_outSize, Size);
+            m_h_tilde.resize(m_outSize, Size);
+
+            m_z.resize(m_outSize,Size);
+            m_r.resize(m_outSize,Size);
+        }
+
+        void ResetMemory()
+        {
+            m_h.setZero();
+            m_h_prev.setZero();
+            m_h_tilde.setZero();
         }
 
         virtual std::string GetSubType() const override
