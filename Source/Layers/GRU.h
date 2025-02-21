@@ -54,27 +54,20 @@ namespace MiniBrain
             Matrix m_dz(m_inSize,nobs),m_dr(m_inSize,nobs),m_dh(m_inSize,nobs);
             m_dz.array() = BackpropData.array() * (m_h_tilde.array() - m_h.array()) * m_z.array() * (1.0f-m_z.array());
             m_dh.array() = BackpropData.array() * m_z.array() * (1.0f-m_h_tilde.array().square());
-            m_dr.array() = (m_dh.transpose() * m_weight_h.transpose()).array()*m_h.array()*m_r.array()*(1.0f-m_r.array());
+            m_dr.array() = (m_weight_h*m_dh).array()*m_h.array()*m_r.array()*(1.0f-m_r.array());
             
-            m_dWh.resize(m_inSize,nobs);
-            m_dUh.resize(m_inSize,nobs);
-            m_dWr.resize(m_inSize,nobs);
-            m_dUr.resize(m_inSize,nobs);
-            m_dWz.resize(m_inSize,nobs);
-            m_dUz.resize(m_inSize,nobs);
-
-            //dot(x.T, dh) = x.T.T*dh
-            m_dWh.noalias() = InData * m_dh;
-            m_dUh.noalias() = (m_r.array()*m_h.array()).matrix().transpose() * m_dh;
-            m_dWr.noalias() = InData * m_dr;
-            //dot(m_h.T, m_dr) = m_h.T.T*m_dr
-            m_dUr.noalias() = m_h * m_dr;
-            m_dWz.noalias() = InData * m_dz;
-            //dot(m_h.T, m_dz) = m_h.T.T*m_dz
-            m_dUz.noalias() = m_h * m_dz;
-
+            //dot(x.T, dh)
+            m_dWh.noalias() = m_dh*InData.transpose();
+            //dot(r*h).T*dh
+            m_dUh.noalias() = m_dh*(m_r.array()*m_h.array()).matrix().transpose();
+            m_dWr.noalias() = m_dr*InData.transpose();
+            //dot(m_h.T, m_dr) 
+            m_dUr.noalias() = m_dr*m_h.transpose();
+            m_dWz.noalias() = m_dz*InData.transpose();
+            //dot(m_h.T, m_dz)
+            m_dUz.noalias() = m_dz * m_h.transpose();
             m_din.resize(m_inSize,nobs);
-            m_din.noalias() = m_Uh * m_dh + m_Ur * m_dr + m_Uz * m_dz;
+            m_din.noalias() = m_Uh.transpose() * m_dh + m_Ur.transpose() * m_dr + m_Uz.transpose() * m_dz;
         }
 
         virtual const Matrix& Output() const override
@@ -92,21 +85,21 @@ namespace MiniBrain
             m_weight_z.resize(m_inSize,m_outSize);
             m_weight_r.resize(m_inSize,m_outSize);
             m_weight_h.resize(m_inSize,m_outSize);
-            m_Uz.resize(m_outSize,m_outSize);
-            m_Ur.resize(m_outSize,m_outSize);
-            m_Uh.resize(m_outSize,m_outSize);
+            m_Uz.resize(m_inSize,m_outSize);
+            m_Ur.resize(m_inSize,m_outSize);
+            m_Uh.resize(m_inSize,m_outSize);
 
             m_h_prev.resize(m_outSize,1);
             m_h_tilde.resize(m_outSize,1);
             m_h.resize(m_outSize,1);
 
-            m_dWz.resize(m_inSize,1);
-            m_dWr.resize(m_inSize,1);
-            m_dWh.resize(m_inSize,1);
-            m_dUz.resize(m_inSize,1);
-            m_dUr.resize(m_inSize,1);
-            m_dUz.resize(m_inSize,1);
-            m_din.resize(m_inSize,1);
+            m_dWz.resize(m_inSize,m_outSize);
+            m_dWr.resize(m_inSize,m_outSize);
+            m_dWh.resize(m_inSize,m_outSize);
+            m_dUz.resize(m_inSize,m_outSize);
+            m_dUr.resize(m_inSize,m_outSize);
+            m_dUz.resize(m_inSize,m_outSize);
+            m_din.resize(m_inSize,m_outSize);
         }
 
         virtual void Init(const float& mu, const float& sigma, Random& RNG) override
@@ -152,6 +145,17 @@ namespace MiniBrain
             m_h.setZero();
             m_h_prev.setZero();
             m_h_tilde.setZero();
+        }
+
+        virtual std::vector<float> GetParameters() const override
+        {
+            std::vector<float> params(m_weight_z.size()+m_weight_r.size(),m_weight_h.size());
+            return params;
+        }
+
+        virtual void SetParameters(const std::vector<float>& param) override
+        {
+
         }
 
         virtual std::string GetSubType() const override

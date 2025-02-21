@@ -151,6 +151,23 @@ namespace MiniBrain
             
         }
 
+        void InitByZero()
+        {
+            if(!CheckUnitSize())
+            {
+                throw std::invalid_argument("[Network]Layer size mismatch");
+            }
+            const int nLayers = GetLayerAmount();
+            
+            for (int i = 0; i < nLayers; i++)
+            {
+                if (m_layers[i]->GetType()=="Layer")
+                {
+                    dynamic_cast<Layer*>(m_layers[i])->Init();
+                }                
+            }
+        }
+
         void AddLayer(IComputeNode *layer)
         {
             m_layers.push_back(layer);
