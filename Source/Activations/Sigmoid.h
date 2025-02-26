@@ -23,7 +23,7 @@ namespace MiniBrain
         // g = J * f = a .* (1 - a) .* f
         virtual void Backward(const Matrix& Indata, const Matrix& NextLayerBackpropData) override
         {
-            m_din.array() = Indata.array() * (1.0f - Indata.array())*NextLayerBackpropData.array();
+            m_din.array() = m_out.array() * (1.0f - m_out.array())*NextLayerBackpropData.array();
         }
 
         virtual std::string GetSubType() const override { return "Sigmoid"; }

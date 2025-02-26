@@ -15,6 +15,7 @@
 #include "Activations/ReLU.h"
 #include "Activations/Tanh.h"
 #include "Activations/Sigmoid.h"
+#include "Activations/SoftMax.h"
 
 #include "Optimizer.h"
 #include "Optimizer/Adam.h"
