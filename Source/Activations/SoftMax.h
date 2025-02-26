@@ -15,7 +15,7 @@ namespace MiniBrain
         {
             m_out.array() = (InData.rowwise() - InData.colwise().maxCoeff()).array().exp();
             RowArray colSum = m_out.colwise().sum();
-            m_out.colwise() /= colSum;
+            m_out.array().rowwise() /= colSum;
         }
 
         // J = d_a / d_z = diag(a) - a * a'
