@@ -184,6 +184,41 @@ namespace MiniBrain
 
             return m_layers[nLayer-1]->Output();
         }
+
+        virtual std::vector<std::vector<float>> GetParameters()const
+        {
+            const int nLayer = GetLayerAmount();
+            std::vector<std::vector<float>> result;
+            result.reserve(nLayer);
+
+            for (int i = 0; i < nLayer; i++)
+            {
+                if (m_layers[i]->GetType()=="Layer")
+                {
+                    result.push_back(dynamic_cast<Layer*>(m_layers[i])->GetParameters());
+                }               
+            }            
+
+            return result;
+        }
+
+        virtual void SetParameters(const std::vector<std::vector<float>>& params)
+        {
+            const int nLayer = GetLayerAmount();
+            if (static_cast<int>(params.size())!=nLayer)
+            {
+                std::invalid_argument("[network]:parameter size mismatch");
+            }
+            
+            for (int i = 0; i < nLayer; i++)
+            {
+                if (m_layers[i]->GetType()=="Layer")
+                {
+                    dynamic_cast<Layer*>(m_layers[i])->SetParameters(params[i]);
+                }                
+            }
+            
+        }
         
     };
 } // namespace MiniBrain
