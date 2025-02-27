@@ -49,7 +49,7 @@ namespace MiniBrain
             return true;
         }
 
-        void Forward(const Matrix& InData)
+        virtual void Forward(const Matrix& InData)
         {
             const int numLayers = GetLayerAmount();
             if (numLayers <= 0)
@@ -71,7 +71,7 @@ namespace MiniBrain
             
         }
 
-        void Backward(const Matrix& Input, const Matrix& Target)
+        virtual void Backward(const Matrix& Input, const Matrix& Target)
         {
             const int nLayer = GetLayerAmount();
             if (nLayer <= 0)
@@ -100,7 +100,7 @@ namespace MiniBrain
             FirstLayer->Backward(Input, m_layers[1]->GetBackpropData());
         }
 
-        void Update(Optimizer& opt)
+        virtual void Update(Optimizer& opt)
         {
             const int nLayer = GetLayerAmount();
             if (nLayer <= 0)
@@ -133,7 +133,7 @@ namespace MiniBrain
             }
         }
 
-        void Init(const float& mu=0.f, const float& sigma=1.f)
+        virtual void Init(const float& mu=0.f, const float& sigma=1.f)
         {
             if(!CheckUnitSize())
             {
@@ -149,23 +149,6 @@ namespace MiniBrain
                 }                
             }
             
-        }
-
-        void InitByZero()
-        {
-            if(!CheckUnitSize())
-            {
-                throw std::invalid_argument("[Network]Layer size mismatch");
-            }
-            const int nLayers = GetLayerAmount();
-            
-            for (int i = 0; i < nLayers; i++)
-            {
-                if (m_layers[i]->GetType()=="Layer")
-                {
-                    dynamic_cast<Layer*>(m_layers[i])->Init();
-                }                
-            }
         }
 
         void AddLayer(IComputeNode *layer)
@@ -188,7 +171,7 @@ namespace MiniBrain
             return m_lossFunc;
         }
 
-        Matrix Predict(const Matrix& Input)
+        virtual Matrix Predict(const Matrix& Input)
         {
             const int nLayer = GetLayerAmount();
 

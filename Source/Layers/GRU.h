@@ -8,6 +8,8 @@ namespace MiniBrain
     {
     protected:
         int m_hiddenSize;
+        int m_BatchSize;
+
         Matrix m_z;
         Matrix m_r;
         Matrix m_h;
@@ -37,16 +39,36 @@ namespace MiniBrain
             return 1.0f/(1.0f + (-InData.array()).exp());
         }
 
+        static void SerializeParameter(const Matrix& m, std::vector<float>& params, int offset=0)
+        {
+            std::copy(m.data(),m.data()+static_cast<int>(m.size()),params.begin()+offset);
+        }
+
+        static void DeserializeParameter(const std::vector<float>& params, Matrix& m, int offset=0)
+        {
+            std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+        }
+
+        static void DeserializeParameter(const std::vector<float>& params, Vector& m, int offset=0)
+        {
+            std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+        }
+
     public:
         GRU (int inSize, int hiddenSize):Layer(inSize,hiddenSize),m_hiddenSize(hiddenSize)
         {
-
+            m_BatchSize = 1;
         }
         ~GRU () {}
 
         virtual void Forward(const Matrix& InData) override
         {
             const int nobs = InData.cols();
+            if (nobs != m_BatchSize)
+            {
+                SetBatchSize(nobs);
+            }
+            
             m_h_prev = m_h;
             m_z.noalias() = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
             m_r.noalias() = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev).colwise()+m_bias_r);
@@ -154,6 +176,7 @@ namespace MiniBrain
 
         void SetBatchSize(int Size)
         {
+            m_BatchSize = Size;
             //隐状态数据比较特殊，不能随意改变batch大小，否则会导致数据丢失
             m_h.resize(m_hiddenSize, Size);
             m_h_prev.resize(m_hiddenSize, Size);
@@ -172,13 +195,66 @@ namespace MiniBrain
 
         virtual std::vector<float> GetParameters() const override
         {
-            std::vector<float> params(m_weight_z.size()+m_weight_r.size(),m_weight_h.size());
+            int size = m_weight_z.size()+m_weight_r.size()+m_weight_h.size()+
+            m_Uz.size()+m_Ur.size()+m_Uh.size()+
+            m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
+            std::vector<float> params(size);
+
+            int offset=0;
+            SerializeParameter(m_weight_z,params,offset);
+            offset+=m_weight_z.size();
+            SerializeParameter(m_weight_r,params,offset);
+            offset+=m_weight_r.size();
+            SerializeParameter(m_weight_h,params,offset);
+            offset+=m_weight_h.size();
+
+            SerializeParameter(m_Uz,params,offset);
+            offset+=m_Uz.size();
+            SerializeParameter(m_Ur,params,offset);
+            offset+=m_Ur.size();
+            SerializeParameter(m_Uh,params,offset);
+            offset+=m_Uh.size();
+
+            SerializeParameter(m_bias_z,params,offset);
+            offset+=m_bias_z.size();
+            SerializeParameter(m_bias_r,params,offset);
+            offset+=m_bias_r.size();
+            SerializeParameter(m_bias_h,params,offset);
+            offset+=m_bias_h.size();
+
             return params;
         }
 
         virtual void SetParameters(const std::vector<float>& param) override
         {
+            int size = m_weight_z.size()+m_weight_r.size()+m_weight_h.size()+
+            m_Uz.size()+m_Ur.size()+m_Uh.size()+
+            m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
+            if (static_cast<int>(param.size())!=size)
+            {
+                throw std::invalid_argument("GRU: parameter size mismatch");
+            }
+            int offset = 0;
+            DeserializeParameter(param,m_weight_z,offset);
+            offset += m_weight_z.size();
+            DeserializeParameter(param,m_weight_r,offset);
+            offset += m_weight_r.size();
+            DeserializeParameter(param,m_weight_h,offset);
+            offset += m_weight_h.size();
 
+            DeserializeParameter(param,m_Uz,offset);
+            offset += m_Uz.size();
+            DeserializeParameter(param,m_Ur,offset);
+            offset += m_Ur.size();
+            DeserializeParameter(param,m_Uh,offset);
+            offset += m_Uh.size();
+
+            DeserializeParameter(param,m_bias_z,offset);
+            offset += m_bias_z.size();
+            DeserializeParameter(param,m_bias_r,offset);
+            offset += m_bias_r.size();
+            DeserializeParameter(param,m_bias_h,offset);
+            offset += m_bias_h.size();
         }
 
         virtual std::string GetSubType() const override
