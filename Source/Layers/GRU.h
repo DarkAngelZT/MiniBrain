@@ -58,6 +58,7 @@ namespace MiniBrain
         GRU (int inSize, int hiddenSize):Layer(inSize,hiddenSize),m_hiddenSize(hiddenSize)
         {
             m_BatchSize = 1;
+            Init();
         }
         ~GRU () {}
 

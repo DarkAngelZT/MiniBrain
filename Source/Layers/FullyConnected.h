@@ -23,7 +23,9 @@ namespace MiniBrain
 
     public:
         FullyConnected(int inSize,int OutSize):Layer(inSize,OutSize)
-        {}
+        {
+            Init();
+        }
 
         virtual const Matrix& Output() const override
         {
