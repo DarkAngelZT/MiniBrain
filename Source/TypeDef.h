@@ -12,5 +12,7 @@ namespace MiniBrain
     typedef Eigen::VectorXf::ConstAlignedMapType ConstAlignedMapVec;
     typedef Eigen::VectorXf::AlignedMapType AlignedMapVec;
 
+    typedef Eigen::MatrixXf::ConstAlignedMapType ConstAlignedMapMat;
+
     typedef Eigen::Array<float,1,Eigen::Dynamic> RowArray;
 } // namespace MiniBrain

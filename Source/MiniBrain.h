@@ -9,6 +9,7 @@
 #include "Layer.h"
 #include "Layers/FullyConnected.h"
 #include "Layers/GRU.h"
+#include "Layers/Convolutional.h"
 
 #include "Activation.h"
 #include "Activations/Mish.h"
