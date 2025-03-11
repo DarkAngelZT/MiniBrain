@@ -38,7 +38,7 @@ namespace MiniBrain
             float* Writer = FlatMat.data();
             const int ChannelSize = Dim.ChannelRows * Dim.ChannelCols;
 
-            for (int i = 0; i < nObs; i++)
+            for (int i = 0; i < nObs; i++, Src += stride)
             {
                 const float* ReaderRow = Src;
                 const float* const ReaderRowEnd = Src+Dim.ConvRows;
@@ -103,7 +103,6 @@ namespace MiniBrain
             const int& step = dim.FilterRows;
             const int filterSize = dim.FilterRows*dim.FilterCols;
             const int filterStride = filterSize * dim.outChannels;
-
             for (int i = 0; i < dim.inChannels; i++, src += ChannelStride, filterData += filterStride)
             {
                 //flatten img
@@ -112,6 +111,7 @@ namespace MiniBrain
                 ConstMapMat filter(filterData, filterSize, dim.outChannels);
                 MovingProduct(step, flatMat, filter, res);
             }
+
             // The layout of 'res' is very complicated
             /*
             * obs0_out0[0, 0] obs0_out1[0, 0] obs0_out2[0, 0] obs0_out0[0, 1] obs0_out1[0, 1] obs0_out2[0, 1] ...
@@ -134,7 +134,7 @@ namespace MiniBrain
             */
             // which in a larger scale looks like
             // [obs0_out0 obs0_out1 obs0_out2 obs1_out0 obs1_out1 obs1_out2 obs2_out0 ...]
-            const int destRows = dim.ChannelRows;
+            const int destRows = dim.ConvRows;
             const int destCols = resCols*nObs;
             const float* resData = res.data();
             const std::size_t copyBytes = sizeof(float)*destRows;
@@ -147,7 +147,6 @@ namespace MiniBrain
                 const int resColHead = d * resRows;
                 std::memcpy(dest,resData+resColHead+k*dim.ConvRows,copyBytes);
             }
-            
         }
 
         // The moving_product() function for the "full" rule
@@ -183,7 +182,7 @@ namespace MiniBrain
             {
                 if (leftEnd <= 0)
                 {
-                    res.block(0, resStartCol, row1, col2).noalias() += mat1 * mat2.block(0, - leftEnd, col1, col2);
+                    res.block(0, resStartCol, row1, col2).noalias() += mat1 * mat2.block(0, - leftEnd, col1, row2);
                 }
                 else
                 {
@@ -206,7 +205,7 @@ namespace MiniBrain
             const int convRows = dim.ChannelRows + paddingTop;
             const int convCols = dim.ChannelCols + paddingLeft;
 
-            const int padRows = dim.ImgRows + paddingTop + 2;
+            const int padRows = dim.ImgRows + paddingTop * 2;
             const int padCols = dim.ImgCols * nObs;
 
             Matrix padMat(padRows, padCols);
@@ -219,7 +218,7 @@ namespace MiniBrain
             ConvDims padDim(dim.inChannels,dim.outChannels,padRows,dim.ChannelCols,dim.FilterRows,dim.FilterCols);
 
             const int flatRows = convRows * nObs;
-            const int flatCols = dim.ChannelRows * dim.ChannelCols;
+            const int flatCols = dim.FilterRows * dim.ChannelCols;
             const int imgStride = padRows * dim.ImgCols;
             const int channelStride = padRows * dim.ChannelCols;
             RMatrix flatMat(flatRows,flatCols);

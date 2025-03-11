@@ -64,7 +64,6 @@ namespace MiniBrain
             m_out.resize(m_outSize, nObs);
 
             internal::Convolve_Valid(m_dim, InData.data(),true,nObs,m_filterData.data(),m_out.data());
-
             int channelStartRow = 0;
             const int channelNElem = m_dim.ConvRows * m_dim.ConvCols;
 
@@ -72,7 +71,6 @@ namespace MiniBrain
             {
                 m_out.block(channelStartRow, 0, channelNElem,nObs).array() += m_bias[i];
             }
-            
         }
 
         virtual void Backward(const Matrix& LastLayerData,const Matrix& BackPropData) override
@@ -94,16 +92,19 @@ namespace MiniBrain
                 nObs, m_dim.outChannels,m_dim.ChannelRows,
                 m_dim.ChannelCols,m_dim.ConvRows, m_dim.ConvCols);
             internal::Convolve_Valid(backConvDim, LastLayerData.data(),false,m_dim.inChannels,BackPropData.data(),m_dfData.data());
+
             m_dfData /= nObs;
             // Derivative for bias
             // Aggregate d(L) / d(z) in each output channel
             ConstAlignedMapMat dOutByChannel(BackPropData.data(), m_dim.ConvRows * m_dim.ConvCols, m_dim.outChannels * nObs);
             Vector db = dOutByChannel.colwise().sum();
+
             //average
             ConstAlignedMapMat dbByObs(db.data(),m_dim.outChannels, nObs);
             m_db.noalias() = dbByObs.rowwise().mean();
             // Compute d(L) / d_in = conv_full(d(L) / d(z), w_rotate)
             m_din.resize(m_inSize, nObs);
+
             internal::ConvDims convFullDim(m_dim.outChannels, m_dim.inChannels, m_dim.ConvRows, m_dim.ConvCols,m_dim.FilterRows,m_dim.FilterCols);
             internal::Convolve_Full(convFullDim, BackPropData.data(), nObs, m_filterData.data(), m_din.data());
         }
