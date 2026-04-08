@@ -2,6 +2,7 @@
 #define ATTENTION_H
 
 #include "../Layer.h"
+#include "../Optimizer.h"
 #include <memory>
 #include <vector>
 
@@ -9,10 +10,14 @@ namespace MiniBrain
 {
     class Attention : public Layer
     {
-
+        int d_feat;
+        // 权重矩阵
+        Matrix Wq, Wk, Wv;
+        Matrix dWq, dWk, dWv;
     public:
-        Attention(int inputSize, int outputSize, int headCount):Layer(inputSize, outputSize)
+        Attention(int inputSize, int outputSize, int featureCount):Layer(inputSize, outputSize)
         {
+            d_feat = inputSize / featureCount;
             Init();
         }
         
@@ -33,7 +38,15 @@ namespace MiniBrain
 
         virtual void Update(Optimizer& opt) override
         {
-
+            ConstAlignedMapVec dw(dWq.data(),dWq.size());
+            ConstAlignedMapVec db(dWk.data(),dWk.size());
+            ConstAlignedMapVec dv(dWv.data(),dWv.size());
+            AlignedMapVec w(Wq.data(),Wq.size());
+            AlignedMapVec b(Wk.data(),Wk.size());
+            AlignedMapVec v(Wv.data(),Wv.size());
+            opt.Update(dw,w);
+            opt.Update(db,b);
+            opt.Update(dv,v);
         }
 
         virtual std::vector<float> GetParameters() const override
