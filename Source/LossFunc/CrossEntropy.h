@@ -29,11 +29,11 @@ namespace MiniBrain
             m_din.noalias() = -Target.cwiseQuotient(Result);
         }
 
-        virtual float GetLoss() const override
+        virtual Scalar GetLoss() const override
         {
-            float r = 0.f;
+            Scalar r = 0.f;
             const int nelem = m_din.size();
-            const float* din_data = m_din.data();
+            const Scalar* din_data = m_din.data();
 
             for (int i = 0; i < nelem; i++)
             {

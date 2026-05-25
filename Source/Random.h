@@ -16,19 +16,19 @@ namespace MiniBrain
         ~Random() {}
 
         void SetNormalDistRandom(
-            float* OutArray, const int size,
-            const float& mu = 0.f, const float& sigma = 1.f)
+            Scalar* OutArray, const int size,
+            const Scalar& mu = 0.f, const Scalar& sigma = 1.f)
         {
-            std::normal_distribution<float> Dist(mu, sigma);
+            std::normal_distribution<Scalar> Dist(mu, sigma);
             for (int i = 0; i < size; i++)
             {
                 OutArray[i] = Dist(m_gen);
             }            
         }
 
-        float Rand()
+        Scalar Rand()
         {
-            std::uniform_real_distribution<float> Dist{0.0f,1.0f};
+            std::uniform_real_distribution<Scalar> Dist{0.0f,1.0f};
             return Dist(m_gen);
         }
 

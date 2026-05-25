@@ -49,7 +49,7 @@ namespace MiniBrain
             m_db.resize(m_dim.outChannels);
         }
 
-        void Init(const float& mu, const float& sigma, Random& rng) override
+        void Init(const Scalar& mu, const Scalar& sigma, Random& rng) override
         {
             Init();
             const int filterDataSize = m_dim.inChannels * m_dim.outChannels * m_dim.FilterRows * m_dim.FilterCols;
@@ -119,16 +119,16 @@ namespace MiniBrain
             opt.Update(db,b);
         }
 
-        virtual std::vector<float> GetParameters() const override
+        virtual std::vector<Scalar> GetParameters() const override
         {
-            std::vector<float> res(m_filterData.size() + m_bias.size());
+            std::vector<Scalar> res(m_filterData.size() + m_bias.size());
 
             std::copy(m_filterData.data(), m_filterData.data() + static_cast<int>(m_filterData.size()), res.begin());
             std::copy(m_bias.data(), m_bias.data() + static_cast<int>(m_bias.size()), res.begin() + m_filterData.size());
             return res;
         }
 
-        virtual void SetParameters(const std::vector<float>& param) override
+        virtual void SetParameters(const std::vector<Scalar>& param) override
         {
             if (static_cast<int>(param.size()) != m_filterData.size() + m_bias.size())
             {

@@ -36,18 +36,18 @@ int main(int argc, char const *argv[])
     // std::string path = "test.bin";
 
     // std::cout<<"before:\n";
-    // for (std::vector<float> param : nn.GetParameters())
+    // for (std::vector<Scalar> param : nn.GetParameters())
     // {        
-    //     for (float p : param)
+    //     for (Scalar p : param)
     //     {
     //         std::cout<<p<<" ";
     //     }
     //     std::cout<<std::endl;
     // }
     // std::cout<<"========"<<std::endl;
-    // for (std::vector<float> param : nn2.GetParameters())
+    // for (std::vector<Scalar> param : nn2.GetParameters())
     // {        
-    //     for (float p : param)
+    //     for (Scalar p : param)
     //     {
     //         std::cout<<p<<" ";
     //     }
@@ -58,9 +58,9 @@ int main(int argc, char const *argv[])
     // io::LoadParameter(&nn2,path);
 
     // std::cout<<"after:\n";
-    // for (std::vector<float> param : nn2.GetParameters())
+    // for (std::vector<Scalar> param : nn2.GetParameters())
     // {        
-    //     for (float p : param)
+    //     for (Scalar p : param)
     //     {
     //         std::cout<<p<<" ";
     //     }

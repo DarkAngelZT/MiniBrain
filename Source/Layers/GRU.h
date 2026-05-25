@@ -39,17 +39,17 @@ namespace MiniBrain
             return 1.0f/(1.0f + (-InData.array()).exp());
         }
 
-        static void SerializeParameter(const Matrix& m, std::vector<float>& params, int offset=0)
+        static void SerializeParameter(const Matrix& m, std::vector<Scalar>& params, int offset=0)
         {
             std::copy(m.data(),m.data()+static_cast<int>(m.size()),params.begin()+offset);
         }
 
-        static void DeserializeParameter(const std::vector<float>& params, Matrix& m, int offset=0)
+        static void DeserializeParameter(const std::vector<Scalar>& params, Matrix& m, int offset=0)
         {
             std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
         }
 
-        static void DeserializeParameter(const std::vector<float>& params, Vector& m, int offset=0)
+        static void DeserializeParameter(const std::vector<Scalar>& params, Vector& m, int offset=0)
         {
             std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
         }
@@ -142,7 +142,7 @@ namespace MiniBrain
             m_dbh.resize(m_hiddenSize);
         }
 
-        virtual void Init(const float& mu, const float& sigma, Random& RNG) override
+        virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
         {
             Init();
             RNG.SetNormalDistRandom(m_weight_z.data(),m_weight_z.size(),mu,sigma);
@@ -194,12 +194,12 @@ namespace MiniBrain
             m_h_tilde.setZero();
         }
 
-        virtual std::vector<float> GetParameters() const override
+        virtual std::vector<Scalar> GetParameters() const override
         {
             int size = m_weight_z.size()+m_weight_r.size()+m_weight_h.size()+
             m_Uz.size()+m_Ur.size()+m_Uh.size()+
             m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
-            std::vector<float> params(size);
+            std::vector<Scalar> params(size);
 
             int offset=0;
             SerializeParameter(m_weight_z,params,offset);
@@ -226,7 +226,7 @@ namespace MiniBrain
             return params;
         }
 
-        virtual void SetParameters(const std::vector<float>& param) override
+        virtual void SetParameters(const std::vector<Scalar>& param) override
         {
             int size = m_weight_z.size()+m_weight_r.size()+m_weight_h.size()+
             m_Uz.size()+m_Ur.size()+m_Uh.size()+

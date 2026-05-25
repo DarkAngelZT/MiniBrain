@@ -30,22 +30,22 @@ namespace MiniBrain
             {}
         };
         
-        inline void FlattenMat(const ConvDims& Dim, const float* Src, const int stride, const int nObs,
-            Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& FlatMat)
+        inline void FlattenMat(const ConvDims& Dim, const Scalar* Src, const int stride, const int nObs,
+            Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& FlatMat)
         {
             const int& SegmentSize = Dim.FilterRows;
-            const std::size_t copyBytes = sizeof(float)*SegmentSize;
-            float* Writer = FlatMat.data();
+            const std::size_t copyBytes = sizeof(Scalar)*SegmentSize;
+            Scalar* Writer = FlatMat.data();
             const int ChannelSize = Dim.ChannelRows * Dim.ChannelCols;
 
             for (int i = 0; i < nObs; i++, Src += stride)
             {
-                const float* ReaderRow = Src;
-                const float* const ReaderRowEnd = Src+Dim.ConvRows;
+                const Scalar* ReaderRow = Src;
+                const Scalar* const ReaderRowEnd = Src+Dim.ConvRows;
                 for ( ; ReaderRow < ReaderRowEnd; ReaderRow++)
                 {
-                    const float* Reader = ReaderRow;
-                    const float* const ReaderEnd = Reader + ChannelSize;
+                    const Scalar* Reader = ReaderRow;
+                    const Scalar* const ReaderEnd = Reader + ChannelSize;
 
                     for (; Reader < ReaderEnd; Reader += Dim.ChannelRows, Writer += SegmentSize)
                     {
@@ -62,7 +62,7 @@ namespace MiniBrain
         // and progressively move the window to the right
         inline void MovingProduct(
             const int step, 
-            const Eigen::Matrix<float, Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
+            const Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
             Eigen::Map<const Matrix>& mat2, Matrix& res)
         {
             const int row1 = mat1.rows();
@@ -81,11 +81,11 @@ namespace MiniBrain
         // The main convolution function using the "valid" rule
         inline void Convolve_Valid(
             const ConvDims& dim,
-            const float* src, const bool imageOuterLoop, const int nObs,
-            const float* filterData, float* dest
+            const Scalar* src, const bool imageOuterLoop, const int nObs,
+            const Scalar* filterData, Scalar* dest
         )
         {
-            typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
+            typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
             typedef Eigen::Map<const Matrix> ConstMapMat;
             //flat Matrix
             const int flatRows = dim.ConvRows * nObs;
@@ -136,8 +136,8 @@ namespace MiniBrain
             // [obs0_out0 obs0_out1 obs0_out2 obs1_out0 obs1_out1 obs1_out2 obs2_out0 ...]
             const int destRows = dim.ConvRows;
             const int destCols = resCols*nObs;
-            const float* resData = res.data();
-            const std::size_t copyBytes = sizeof(float)*destRows;
+            const Scalar* resData = res.data();
+            const std::size_t copyBytes = sizeof(Scalar)*destRows;
             for (int b = 0; b < destCols; b++, dest += destRows)
             {
                 const int k = b / resCols;
@@ -152,7 +152,7 @@ namespace MiniBrain
         // The moving_product() function for the "full" rule
         inline void MovingProduct_Full(
             const int padding, const int step,
-            const Eigen::Matrix<float,  Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
+            const Eigen::Matrix<Scalar,  Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
             const Matrix& mat2,
             Matrix& res
         )
@@ -194,9 +194,9 @@ namespace MiniBrain
         }
 
         // The main convolution function for the "full" rule 反向传播要用到
-        inline void Convolve_Full(const ConvDims& dim, const float* src, const int nObs, const float* filterData, float* dest)
+        inline void Convolve_Full(const ConvDims& dim, const Scalar* src, const int nObs, const Scalar* filterData, Scalar* dest)
         {
-            typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
+            typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
             typedef Eigen::Map<const Matrix> ConstMapMat;
 
             const int paddingTop = dim.FilterRows - 1;
@@ -235,11 +235,11 @@ namespace MiniBrain
                 filtersIn[i].resize(filterSize,dim.outChannels);
             }
 
-            const float* reader = filterData;
+            const Scalar* reader = filterData;
 
             for (int i = 0; i < nFilter; i++, reader += filterSize)
             {
-                float* writer = filtersIn[i % dim.inChannels].data() + (i/dim.inChannels)*filterSize;
+                Scalar* writer = filtersIn[i % dim.inChannels].data() + (i/dim.inChannels)*filterSize;
                 std::reverse_copy(reader, reader + filterSize, writer);
             }
             
@@ -258,8 +258,8 @@ namespace MiniBrain
             
             const int& destRows = convRows;
             const int destCols = resCols * nObs;
-            const float* resData = res.data();
-            const std::size_t copyBytes = sizeof(float) * destRows;
+            const Scalar* resData = res.data();
+            const std::size_t copyBytes = sizeof(Scalar) * destRows;
 
             for(int b = 0; b < destCols; b++, dest += destRows)
             {

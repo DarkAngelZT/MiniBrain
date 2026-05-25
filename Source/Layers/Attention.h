@@ -26,7 +26,7 @@ namespace MiniBrain
 
         }
 
-        virtual void Init(const float& mu, const float& sigma, Random& RNG) override
+        virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
         {
 
         }
@@ -49,12 +49,12 @@ namespace MiniBrain
             opt.Update(dv,v);
         }
 
-        virtual std::vector<float> GetParameters() const override
+        virtual std::vector<Scalar> GetParameters() const override
         {
-            return std::vector<float>();
+            return std::vector<Scalar>();
         }
 
-        virtual void SetParameters(const std::vector<float>& param) override 
+        virtual void SetParameters(const std::vector<Scalar>& param) override 
         {
             
         };

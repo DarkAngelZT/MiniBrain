@@ -133,7 +133,7 @@ namespace MiniBrain
             }
         }
 
-        virtual void Init(const float& mu=0.f, const float& sigma=1.f)
+        virtual void Init(const Scalar& mu=0.f, const Scalar& sigma=1.f)
         {
             if(!CheckUnitSize())
             {
@@ -185,10 +185,10 @@ namespace MiniBrain
             return m_layers[nLayer-1]->Output();
         }
 
-        virtual std::vector<std::vector<float>> GetParameters()const
+        virtual std::vector<std::vector<Scalar>> GetParameters()const
         {
             const int nLayer = GetLayerAmount();
-            std::vector<std::vector<float>> result;
+            std::vector<std::vector<Scalar>> result;
             result.reserve(nLayer);
 
             for (int i = 0; i < nLayer; i++)
@@ -202,7 +202,7 @@ namespace MiniBrain
             return result;
         }
 
-        virtual void SetParameters(const std::vector<std::vector<float>>& params)
+        virtual void SetParameters(const std::vector<std::vector<Scalar>>& params)
         {
             const int nLayer = GetLayerAmount();
             if (static_cast<int>(params.size())!=nLayer)

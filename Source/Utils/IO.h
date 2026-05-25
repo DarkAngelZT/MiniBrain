@@ -14,7 +14,7 @@ namespace MiniBrain
         class SingleParamData
         {
             public:
-            std::vector<float> data;
+            std::vector<Scalar> data;
             friend class bitsery::Access;
 
             template<typename S>
@@ -46,7 +46,7 @@ namespace MiniBrain
 
         void SaveParameter(Network* network,std::string path)
         {
-            std::vector<std::vector<float>> data = network->GetParameters();
+            std::vector<std::vector<Scalar>> data = network->GetParameters();
             std::ofstream file(path,std::ios::binary);
             bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser(file);
             NetworkData nd;
@@ -73,7 +73,7 @@ namespace MiniBrain
                 return;
             }
             
-            std::vector<std::vector<float>> data;
+            std::vector<std::vector<Scalar>> data;
             for(auto& d:nd.data)
             {
                 data.push_back(d.data);

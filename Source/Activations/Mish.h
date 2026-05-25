@@ -26,9 +26,9 @@ namespace MiniBrain
             Matrix S = (-InData.array().abs()).exp();
 
             //t^2
-            m_out.array() = (S.array()+float(1)).square();
+            m_out.array() = (S.array()+Scalar(1)).square();
             //s^2 or 1
-            S.noalias() = (InData.array() >= float(0)).select(S.cwiseAbs2(),float(1));
+            S.noalias() = (InData.array() >= Scalar(0)).select(S.cwiseAbs2(),Scalar(1));
             m_out.array() = (m_out.array()-S.array())/(m_out.array()+S.array());
             m_out.array() *= InData.array();
         }

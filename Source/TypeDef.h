@@ -1,5 +1,6 @@
 #pragma once
 #include "Eigen/Dense"
+#include "autodiff/reverse/var/var.hpp"
 
 namespace MiniBrain
 {
@@ -14,5 +15,10 @@ namespace MiniBrain
 
     typedef Eigen::MatrixXf::ConstAlignedMapType ConstAlignedMapMat;
 
-    typedef Eigen::Array<float,1,Eigen::Dynamic> RowArray;
+    typedef float Scalar;
+
+    typedef Eigen::Array<Scalar,1,Eigen::Dynamic> RowArray;
+
+    typedef autodiff::Variable<Scalar> AutoDiffVar;
+
 } // namespace MiniBrain

@@ -8,19 +8,19 @@ namespace MiniBrain
     class Adam : public Optimizer
     {
     protected:
-        std::map<const float*,Array> m_history_m;
-        std::map<const float*,Array> m_history_v;
-        float m_beta_1t;
-        float m_beta_2t;
+        std::map<const Scalar*,Array> m_history_m;
+        std::map<const Scalar*,Array> m_history_v;
+        Scalar m_beta_1t;
+        Scalar m_beta_2t;
 
     public:
-        float m_learnRate;
-        float m_eps;
-        float m_beta1;
-        float m_beta2;
+        Scalar m_learnRate;
+        Scalar m_eps;
+        Scalar m_beta1;
+        Scalar m_beta2;
 
-        Adam(const float& lrate = 0.001f, const float& eps = float(1e-6),
-            const float& beta1 = 0.9f, const float& beta2 = 0.999f):
+        Adam(const Scalar& lrate = 0.001f, const Scalar& eps = Scalar(1e-6),
+            const Scalar& beta1 = 0.9f, const Scalar& beta2 = 0.999f):
             m_beta_1t(beta1), m_beta_2t(beta2),
             m_learnRate(lrate), m_eps(eps),
             m_beta1(beta1), m_beta2(beta2) 
@@ -59,8 +59,8 @@ namespace MiniBrain
             mvec = m_beta1*mvec+(1.0f-m_beta1)*dvec.array();
             vvec = m_beta2*vvec+(1.0f-m_beta2)*dvec.array().square();
             // Correction coeffients
-            const float correct1 = 1.0f / (1.0f - m_beta_1t);
-            const float correct2 = 1.0f / std::sqrt(1.0f - m_beta_2t);
+            const Scalar correct1 = 1.0f / (1.0f - m_beta_1t);
+            const Scalar correct2 = 1.0f / std::sqrt(1.0f - m_beta_2t);
             // update parameters
             vec.array() -= (m_learnRate * correct1) * mvec / (correct2 * vvec.sqrt() + m_eps);
             m_beta_1t *= m_beta1;

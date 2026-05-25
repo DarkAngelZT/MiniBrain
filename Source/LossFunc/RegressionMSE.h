@@ -24,7 +24,7 @@ namespace MiniBrain
             m_din.noalias() = Result - Target;
         }
 
-        virtual float GetLoss() const override
+        virtual Scalar GetLoss() const override
         {
             //devide by 2, thus remove number 2 in derivative
             return m_din.squaredNorm()/m_din.cols() * 0.5f;

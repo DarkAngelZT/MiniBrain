@@ -45,7 +45,7 @@ namespace MiniBrain
             m_db.resize(m_outSize);
         }
 
-        virtual void Init(const float& mu, const float& sigma, Random& RNG) override
+        virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
         {
             Init();
             RNG.SetNormalDistRandom(m_weight.data(),m_weight.size(),mu,sigma);
@@ -83,15 +83,15 @@ namespace MiniBrain
             opt.Update(db, bias);
         }
 
-        virtual std::vector<float> GetParameters() const override
+        virtual std::vector<Scalar> GetParameters() const override
         {
-            std::vector<float> params(m_weight.size()+m_bias.size());
+            std::vector<Scalar> params(m_weight.size()+m_bias.size());
             std::copy(m_weight.data(),m_weight.data()+static_cast<int>(m_weight.size()),params.begin());
             std::copy(m_bias.data(),m_bias.data()+static_cast<int>(m_bias.size()),params.begin()+m_weight.size());
             return params;
         }
 
-        virtual void SetParameters(const std::vector<float>& param) override
+        virtual void SetParameters(const std::vector<Scalar>& param) override
         {
             if (static_cast<int>(param.size())!=m_weight.size()+m_bias.size())
             {
