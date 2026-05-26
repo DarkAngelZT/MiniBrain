@@ -4,22 +4,23 @@
 #include "Node.h"
 
 namespace MiniBrain{
-    class Activation: public IComputeNode
+    template<typename T>
+    class Activation: public IComputeNode<T>
     {
     protected:
         /* data */
-        Matrix m_out;
-        Matrix m_din;
+        Matrix<T> m_out;
+        Matrix<T> m_din;
     public:
         Activation(/* args */) {}
         ~Activation() {}
 
-        virtual const Matrix& Output() const override
+        virtual const Matrix<T>& Output() const override
         {
             return m_out;
         }
 
-        virtual const Matrix& GetBackpropData() const override
+        virtual const Matrix<T>& GetBackpropData() const override
         {
             return m_din;
         }

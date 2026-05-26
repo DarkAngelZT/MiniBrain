@@ -6,33 +6,34 @@
 
 namespace MiniBrain
 {
-    class FullyConnected: public Layer
+    template<typename T>
+    class FullyConnected: public Layer<T>
     {        
-        Matrix m_weight;
-        Vector m_bias;
+        Matrix<T> m_weight;
+        Vector<T> m_bias;
 
         //weight的导数
-        Matrix m_dw;
+        Matrix<Scalar> m_dw;
         //bias的导数
-        Vector m_db;
+        Vector<Scalar> m_db;
 
         //合并格式，z=w*x+b,当前层的输出
-        Matrix m_out;
+        Matrix<T> m_out;
         //输入端的反向传播输出
-        Matrix m_din;
+        // Matrix<T> m_din;
 
     public:
-        FullyConnected(int inSize,int OutSize):Layer(inSize,OutSize)
+        FullyConnected(int inSize,int OutSize):Layer<T>(inSize,OutSize)
         {
             Init();
         }
 
-        virtual const Matrix& Output() const override
+        virtual const Matrix<T>& Output() const override
         {
             return m_out;
         }
 
-        virtual const Matrix& GetBackpropData() const override
+        virtual const Matrix<T>& GetBackpropData() const override
         {
             return m_din;
         }
@@ -52,7 +53,7 @@ namespace MiniBrain
             RNG.SetNormalDistRandom(m_bias.data(),m_bias.size(),mu,sigma);
         }
 
-        virtual void Forward(const Matrix& InData) override
+        virtual void Forward(const Matrix<T>& InData) override
         {
             const int nobs = InData.cols();
             //out = w .* in + b
@@ -61,8 +62,14 @@ namespace MiniBrain
             m_out.colwise() += m_bias;
         }
 
-        virtual void Backward(const Matrix& LastLayerData,const Matrix& NextLayerData) override
+        virtual void Backward(const Matrix<T>& LastLayerData,const Matrix<T>& NextLayerData) override
         {
+            if constexpr (std::is_same_v<Scalar, AutoDiffVar>)
+            {
+                m_dw.setZero();
+                m_db.setZero();
+                autodiff::gradient(NextLayerData.sum(), autodiff::wrt(m_weight, m_bias), m_dw, m_db);
+            }
             const int nobs = LastLayerData.cols();
             // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
             m_dw.noalias() = LastLayerData * NextLayerData.transpose() / nobs;
@@ -75,12 +82,11 @@ namespace MiniBrain
 
         virtual void Update(Optimizer&opt) override
         {
-            ConstAlignedMapVec dw(m_dw.data(),m_dw.size());
-            ConstAlignedMapVec db(m_db.data(),m_db.size());
-            AlignedMapVec weight(m_weight.data(), m_weight.size());
-            AlignedMapVec bias(m_bias.data(),m_bias.size());
-            opt.Update(dw, weight);
-            opt.Update(db, bias);
+            if constexpr (std::is_same_v<Scalar, AutoDiffVar>)
+            {
+                opt.Update(m_dw, m_weight);
+                opt.Update(m_db, m_bias);
+            }            
         }
 
         virtual std::vector<Scalar> GetParameters() const override

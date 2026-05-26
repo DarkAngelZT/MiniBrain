@@ -8,11 +8,12 @@
 
 namespace MiniBrain
 {
+    template<typename T>
     class Network
     {
     protected:
-        std::vector<IComputeNode *> m_layers;
-        LossFunc *m_lossFunc=nullptr;
+        std::vector<IComputeNode<T> *> m_layers;
+        LossFunc<T> *m_lossFunc=nullptr;
         Random m_defaultRNG;
         Random& m_rng;
 
@@ -49,7 +50,7 @@ namespace MiniBrain
             return true;
         }
 
-        virtual void Forward(const Matrix& InData)
+        virtual void Forward(const Matrix<T>& InData)
         {
             const int numLayers = GetLayerAmount();
             if (numLayers <= 0)
@@ -57,7 +58,7 @@ namespace MiniBrain
                 return;
             }
             
-            if(InData.rows() != static_cast<Layer*>(m_layers[0])->GetInSize())
+            if(InData.rows() != static_cast<Layer<T>*>(m_layers[0])->GetInSize())
             {
                 throw std::invalid_argument("[Network]: Input data dimension mismatch");
             }
@@ -71,7 +72,7 @@ namespace MiniBrain
             
         }
 
-        virtual void Backward(const Matrix& Input, const Matrix& Target)
+        virtual void Backward(const Matrix<T>& Input, const Matrix<T>& Target)
         {
             const int nLayer = GetLayerAmount();
             if (nLayer <= 0)
@@ -79,8 +80,8 @@ namespace MiniBrain
                 return;
             }
             
-            IComputeNode* FirstLayer = m_layers[0];
-            IComputeNode* LastLayer = m_layers[nLayer-1];
+            IComputeNode<T>* FirstLayer = m_layers[0];
+            IComputeNode<T>* LastLayer = m_layers[nLayer-1];
 
             m_lossFunc->Evaluate(LastLayer->Output(),Target);
             
@@ -112,7 +113,7 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType() == "Layer")
                 {
-                    dynamic_cast<Layer*>(m_layers[i])->Update(opt);
+                    dynamic_cast<Layer<T>*>(m_layers[i])->Update(opt);
                 }                
             }            
         }
@@ -145,18 +146,18 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType()=="Layer")
                 {
-                    dynamic_cast<Layer*>(m_layers[i])->Init(mu,sigma,m_rng);
+                    dynamic_cast<Layer<T>*>(m_layers[i])->Init(mu,sigma,m_rng);
                 }                
             }
             
         }
 
-        void AddLayer(IComputeNode *layer)
+        void AddLayer(IComputeNode<T> *layer)
         {
             m_layers.push_back(layer);
         }
 
-        void SetLossFunc(LossFunc *lossFunc)
+        void SetLossFunc(LossFunc<T> *lossFunc)
         {
             m_lossFunc = lossFunc;
         }
@@ -166,18 +167,18 @@ namespace MiniBrain
             return m_layers.size();
         }
 
-        const LossFunc* GetLossFunc() const
+        const LossFunc<T>* GetLossFunc() const
         {
             return m_lossFunc;
         }
 
-        virtual Matrix Predict(const Matrix& Input)
+        virtual Matrix<T> Predict(const Matrix<T>& Input)
         {
             const int nLayer = GetLayerAmount();
 
             if (nLayer <= 0)
             {
-                return Matrix();
+                return Matrix<T>();
             }
             
             Forward(Input);
@@ -195,7 +196,7 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType()=="Layer")
                 {
-                    result.push_back(dynamic_cast<Layer*>(m_layers[i])->GetParameters());
+                    result.push_back(dynamic_cast<Layer<T>*>(m_layers[i])->GetParameters());
                 }               
             }            
 
@@ -214,7 +215,7 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType()=="Layer")
                 {
-                    dynamic_cast<Layer*>(m_layers[i])->SetParameters(params[i]);
+                    dynamic_cast<Layer<T>*>(m_layers[i])->SetParameters(params[i]);
                 }                
             }
             

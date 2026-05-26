@@ -4,6 +4,7 @@
 
 namespace MiniBrain
 {
+    template<typename T>
     class Optimizer
     {
     protected:
@@ -24,7 +25,23 @@ namespace MiniBrain
         /// \param vec  On entering, the current parameter vector. On exit, the
         ///             updated parameters.
         ///
-        virtual void Update(ConstAlignedMapVec& dvec, AlignedMapVec& vec) = 0;
+        virtual void Update(ConstAlignedMapVec<T>& dvec, AlignedMapVec<T>& vec) = 0;
+
+        void Update(const Matrix<T>& Indw, Matrix<T>& Weight)
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                Matrix<Scalar> dW(Indw.rows(), Indw.cols());
+                Matrix<Scalar> w(Weight.rows(), Weight.cols());
+                dW = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                ConstAlignedMapVec<Scalar> dvec(dW.data(), dW.size());
+                AlignedMapVec<Scalar> vec(w.data(), w.size());
+                Update(dvec, vec);
+                // Update the original weight matrix with the new values
+                Weight = w.cast<AutoDiffVar>();
+            }
+        }
     };
     
 }

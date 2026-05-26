@@ -5,17 +5,18 @@
 
 namespace MiniBrain
 {
+    template<typename T>
     class LossFunc : public Node
     {
     protected:
-        Matrix m_din;
+        Matrix<T> m_din;
     public:
         LossFunc(/* args */) {}
         ~LossFunc() {}
 
-        virtual void Evaluate(const Matrix& preLayerData, const Matrix& target) = 0;
+        virtual void Evaluate(const Matrix<T>& preLayerData, const Matrix<T>& target) = 0;
 
-        virtual const Matrix& GetBackpropData() const {return m_din;}
+        virtual const Matrix<T>& GetBackpropData() const {return m_din;}
 
         virtual Scalar GetLoss() const = 0;
 

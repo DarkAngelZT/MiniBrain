@@ -7,7 +7,8 @@
 namespace MiniBrain {
     class Optimizer;
     
-    class Layer: public IComputeNode
+    template<typename T>
+    class Layer: public IComputeNode<T>
     {
     private:
         /* data */

@@ -4,16 +4,26 @@
 
 namespace MiniBrain
 {
-    typedef Eigen::MatrixXf Matrix;
-    typedef Eigen::VectorXf Vector;
+    template<typename T>
+    using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+
+    template<typename T>
+    using Vector = Eigen::VectorX<T>;
+
     typedef Eigen::RowVectorXi IntVector;
 
-    typedef Eigen::ArrayXf Array;
-    //内存对齐映射，业务逻辑跟直接访问vector一样，只是效率更高
-    typedef Eigen::VectorXf::ConstAlignedMapType ConstAlignedMapVec;
-    typedef Eigen::VectorXf::AlignedMapType AlignedMapVec;
+    template<typename T>
+    using Array = Eigen::Array<T, Eigen::Dynamic, 1>;
 
-    typedef Eigen::MatrixXf::ConstAlignedMapType ConstAlignedMapMat;
+    //内存对齐映射，业务逻辑跟直接访问vector一样，只是效率更高
+    template<typename T>
+    using ConstAlignedMapVec = Eigen::Map<const Eigen::VectorX<T>, Eigen::Aligned>;
+    
+    template<typename T>
+    using AlignedMapVec = Eigen::Map<Eigen::VectorX<T>, Eigen::Aligned>;
+
+    template<typename T>
+    using ConstAlignedMapMat = Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Aligned>;
 
     typedef float Scalar;
 

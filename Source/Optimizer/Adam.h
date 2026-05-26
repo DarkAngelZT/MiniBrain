@@ -5,11 +5,11 @@
 
 namespace MiniBrain
 {
-    class Adam : public Optimizer
+    class Adam : public Optimizer<Scalar>
     {
     protected:
-        std::map<const Scalar*,Array> m_history_m;
-        std::map<const Scalar*,Array> m_history_v;
+        std::map<const Scalar*,Array<Scalar>> m_history_m;
+        std::map<const Scalar*,Array<Scalar>> m_history_v;
         Scalar m_beta_1t;
         Scalar m_beta_2t;
 
@@ -36,12 +36,12 @@ namespace MiniBrain
             m_beta_2t = m_beta2;
         }
 
-        virtual void Update(ConstAlignedMapVec& dvec, AlignedMapVec& vec) override
+        virtual void Update(ConstAlignedMapVec<Scalar>& dvec, AlignedMapVec<Scalar>& vec) override
         {
             // Get the m and v vectors associated with this gradient
             //according to stl, map will create default element if doesn't exist
-            Array& mvec = m_history_m[dvec.data()];
-            Array& vvec = m_history_v[dvec.data()];
+            Array<Scalar>& mvec = m_history_m[dvec.data()];
+            Array<Scalar>& vvec = m_history_v[dvec.data()];
             //init if len = 0
             if (mvec.size() == 0)
             {

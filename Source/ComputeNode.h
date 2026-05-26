@@ -5,15 +5,16 @@
 
 namespace MiniBrain
 {
+    template<typename T>
     class IComputeNode : public Node
     {
         public:
-            virtual void Forward(const Matrix& InData) = 0;
+            virtual void Forward(const Matrix<T>& InData) = 0;
             
-            virtual const Matrix& Output() const = 0;
+            virtual const Matrix<T>& Output() const = 0;
 
-            virtual void Backward(const Matrix& LastLayerData,const Matrix& NextLayerData) = 0;
+            virtual void Backward(const Matrix<T>& LastLayerData,const Matrix<T>& NextLayerData) = 0;
 
-            virtual const Matrix& GetBackpropData() const = 0;
+            virtual const Matrix<T>& GetBackpropData() const = 0;
     };
 } // namespace MiniBrain
