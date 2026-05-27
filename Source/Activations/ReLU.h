@@ -32,7 +32,7 @@ namespace MiniBrain
 
         // J = d_a / d_z = diag(sign(a)) = diag(a > 0)
         // out = J * f = (a > 0) .* f
-        virtual void Backward(const Matrix<T>& InData, const Matrix<T>& NextLayerData) override
+        virtual void Backward(const Matrix<T>& InData, T& Loss) override
         {
             // m_din.array() = (m_out.array()>Scalar(0)).select(NextLayerData,Scalar(0));
         }

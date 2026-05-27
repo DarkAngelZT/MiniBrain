@@ -18,7 +18,7 @@ namespace MiniBrain
 
         virtual const Matrix<T>& GetBackpropData() const {return m_din;}
 
-        virtual Scalar GetLoss() const = 0;
+        virtual T GetLoss() const = 0;
 
         virtual std::string GetType() const override {return "LossFunc";}
     };

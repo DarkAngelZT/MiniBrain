@@ -62,27 +62,31 @@ namespace MiniBrain
             return m_out;
         }
 
-        virtual void Backward(const Matrix<T>& LastLayerData,const Matrix<T>& NextLayerData) override
+        virtual void Backward(T& Loss) override
         {
-            if constexpr (std::is_same_v<Scalar, AutoDiffVar>)
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 m_dw.setZero();
                 m_db.setZero();
-                autodiff::gradient(NextLayerData.sum(), autodiff::wrt(m_weight, m_bias), m_dw, m_db);
+                Vector<AutoDiffVar> params(m_weight.size()+m_bias.size());
+                params<< m_weight.reshaped(), m_bias.resized();
+                Eigen::VectorXf grads = autodiff::gradient(Loss,params);
+                m_dw = grads.head(m_weight.size()).reshaped(m_inSize,m_outSize);
+                m_db = grads.tail(m_bias.size());
             }
-            const int nobs = LastLayerData.cols();
+            // const int nobs = LastLayerData.cols();
             // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
-            m_dw.noalias() = LastLayerData * NextLayerData.transpose() / nobs;
+            // m_dw.noalias() = LastLayerData * NextLayerData.transpose() / nobs;
             // Derivative for bias, d(L) / d(b) = d(L) / d(z)
-            m_db.noalias() = NextLayerData.rowwise().mean();
+            // m_db.noalias() = NextLayerData.rowwise().mean();
             // Compute d(L) / d_in = W * [d(L) / d(z)]
-            m_din.resize(m_inSize,nobs);
-            m_din.noalias() = m_weight * NextLayerData;
+            // m_din.resize(m_inSize,nobs);
+            // m_din.noalias() = m_weight * NextLayerData;
         }
 
         virtual void Update(Optimizer&opt) override
         {
-            if constexpr (std::is_same_v<Scalar, AutoDiffVar>)
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 opt.Update(m_dw, m_weight);
                 opt.Update(m_db, m_bias);

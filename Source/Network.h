@@ -50,7 +50,7 @@ namespace MiniBrain
             return true;
         }
 
-        virtual void Forward(const Matrix<T>& InData)
+        virtual Matrix<T> Forward(const Matrix<T>& InData)
         {
             const int numLayers = GetLayerAmount();
             if (numLayers <= 0)
@@ -63,13 +63,13 @@ namespace MiniBrain
                 throw std::invalid_argument("[Network]: Input data dimension mismatch");
             }
 
-            m_layers[0]->Forward(InData);
+            Matrix<T> output = m_layers[0]->Forward(InData);
 
             for (int i = 1; i < numLayers; i++)
             {
-                m_layers[i]->Forward(m_layers[i-1]->Output());
+                output = m_layers[i]->Forward(output);
             }
-            
+            return output;
         }
 
         virtual void Backward(const Matrix<T>& Input, const Matrix<T>& Target)
@@ -91,17 +91,15 @@ namespace MiniBrain
                 return;
             }
             
-            LastLayer->Backward(m_layers[nLayer-2]->Output(), m_lossFunc->GetBackpropData());
+            T loss = m_lossFunc->GetLoss();
 
-            for (int i = nLayer-2; i >0; i--)
+            for (int i = nLayer-1; i >=0; i--)
             {
-                m_layers[i]->Backward(m_layers[i - 1]->Output(), m_layers[i + 1]->GetBackpropData());
+                m_layers[i]->Backward(loss);
             }
-            
-            FirstLayer->Backward(Input, m_layers[1]->GetBackpropData());
         }
 
-        virtual void Update(Optimizer& opt)
+        virtual void Update(Optimizer<T>& opt)
         {
             const int nLayer = GetLayerAmount();
             if (nLayer <= 0)
@@ -181,9 +179,9 @@ namespace MiniBrain
                 return Matrix<T>();
             }
             
-            Forward(Input);
+            Matrix<T> output = Forward(Input);
 
-            return m_layers[nLayer-1]->Output();
+            return output;
         }
 
         virtual std::vector<std::vector<Scalar>> GetParameters()const

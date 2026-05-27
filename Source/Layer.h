@@ -5,6 +5,7 @@
 #include <vector>
 
 namespace MiniBrain {
+    template<typename T>
     class Optimizer;
     
     template<typename T>
@@ -26,7 +27,7 @@ namespace MiniBrain {
 
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) = 0;
 
-        virtual void Update(Optimizer& opt) = 0;
+        virtual void Update(Optimizer<T>& opt) = 0;
 
         virtual std::vector<Scalar> GetParameters() const = 0;
 
