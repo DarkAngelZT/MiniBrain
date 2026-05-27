@@ -18,7 +18,7 @@ namespace MiniBrain
         Vector<Scalar> m_db;
 
         //合并格式，z=w*x+b,当前层的输出
-        Matrix<T> m_out;
+        // Matrix<T> m_out;
         //输入端的反向传播输出
         // Matrix<T> m_din;
 
@@ -26,16 +26,6 @@ namespace MiniBrain
         FullyConnected(int inSize,int OutSize):Layer<T>(inSize,OutSize)
         {
             Init();
-        }
-
-        virtual const Matrix<T>& Output() const override
-        {
-            return m_out;
-        }
-
-        virtual const Matrix<T>& GetBackpropData() const override
-        {
-            return m_din;
         }
 
         virtual void Init() override
@@ -53,13 +43,23 @@ namespace MiniBrain
             RNG.SetNormalDistRandom(m_bias.data(),m_bias.size(),mu,sigma);
         }
 
-        virtual void Forward(const Matrix<T>& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             const int nobs = InData.cols();
             //out = w .* in + b
-            m_out.resize(m_outSize, nobs);
-            m_out.noalias() = m_weight.transpose()*InData;
-            m_out.colwise() += m_bias;
+            // m_out.resize(m_outSize, nobs);
+            Matrix<T> m_out(m_outSize, nobs);
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                m_out = m_weight.transpose()*InData;
+                m_out.colwise() += m_bias;
+            }
+            else
+            {
+                m_out.noalias() = m_weight.transpose()*InData;
+                m_out.colwise() += m_bias;
+            }
+            return m_out;
         }
 
         virtual void Backward(const Matrix<T>& LastLayerData,const Matrix<T>& NextLayerData) override

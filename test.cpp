@@ -6,15 +6,15 @@ using namespace MiniBrain;
 
 int main(int argc, char const *argv[])
 {
-    Network nn,nn2;
+    Network<AutoDiffVar> nn,nn2;
     // Layer* layer1 = new FullyConnected(2,6);
     // Layer* layer2 = new FullyConnected(6,1);
     // GRU* layer3 = new GRU(1,6);
     // Layer* layer4 = new FullyConnected(12,12);
-    Convolutional* layer5 = new Convolutional(10,10,1,2,3,3);
-    Layer* layer6 = new FullyConnected(8*8*2,2);
+    Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);
+    Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
 
-    Activation* a1 = new ReLU();
+    Activation<AutoDiffVar>* a1 = new ReLU();
     
     nn.AddLayer(layer5);
     nn.AddLayer(a1);
@@ -68,8 +68,8 @@ int main(int argc, char const *argv[])
     // }
 
 
-    Matrix x = Matrix::Random(100,2);
-    Matrix y = Matrix::Random(2,2);
+    Matrix<AutoDiffVar> x = Matrix<AutoDiffVar>::Random(100,2);
+    Matrix<AutoDiffVar> y = Matrix<AutoDiffVar>::Random(2,2);
     // Matrix x2 = Matrix::Random(100,2);
     // Matrix x(1,6);
     // Matrix y(1,6);
@@ -84,7 +84,7 @@ int main(int argc, char const *argv[])
 
     // layer3->SetBatchSize(1);
     // // Matrix in = Matrix::Random(2,1);
-    Matrix output = nn.Predict(x);
+    Matrix<AutoDiffVar> output = nn.Predict(x);
     std::cout<<y<<std::endl;
     // // layer3->SetBatchSize(1);
     for (int i = 0; i < 10; i++)

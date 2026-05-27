@@ -9,9 +9,7 @@ namespace MiniBrain
     class IComputeNode : public Node
     {
         public:
-            virtual void Forward(const Matrix<T>& InData) = 0;
-            
-            virtual const Matrix<T>& Output() const = 0;
+            virtual Matrix<T> Forward(const Matrix<T>& InData) = 0;
 
             virtual void Backward(const Matrix<T>& LastLayerData,const Matrix<T>& NextLayerData) = 0;
 

@@ -5,7 +5,8 @@
 
 namespace MiniBrain
 {
-    class ReLU : public Activation
+    template<typename T>
+    class ReLU : public Activation<T>
     {
     protected:
         /* data */        
@@ -13,16 +14,27 @@ namespace MiniBrain
         ReLU(/* args */){}
         ~ReLU(){}
 
-        virtual void Forward(const Matrix& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
-            m_out.array() = InData.array().cwiseMax(Scalar(0));
+            
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                return InData.unaryExpr([](const AutoDiffVar& x){ return x.expr->val > Scalar(0) ? x : T(0); });
+            }
+            else
+            {
+                Matrix<T> m_out(InData.rows(), InData.cols());
+                m_out.array() = InData.array().cwiseMax(Scalar(0));
+                return m_out;
+            }
+            
         }
 
         // J = d_a / d_z = diag(sign(a)) = diag(a > 0)
         // out = J * f = (a > 0) .* f
-        virtual void Backward(const Matrix& InData, const Matrix& NextLayerData) override
+        virtual void Backward(const Matrix<T>& InData, const Matrix<T>& NextLayerData) override
         {
-            m_din.array() = (m_out.array()>Scalar(0)).select(NextLayerData,Scalar(0));
+            // m_din.array() = (m_out.array()>Scalar(0)).select(NextLayerData,Scalar(0));
         }
 
         virtual std::string GetSubType()const override{return "ReLU";}
