@@ -84,7 +84,7 @@ namespace MiniBrain
             // m_din.noalias() = m_weight * NextLayerData;
         }
 
-        virtual void Update(Optimizer&opt) override
+        virtual void Update(Optimizer<Scalar>& opt) override
         {
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
@@ -95,10 +95,24 @@ namespace MiniBrain
 
         virtual std::vector<Scalar> GetParameters() const override
         {
-            std::vector<Scalar> params(m_weight.size()+m_bias.size());
-            std::copy(m_weight.data(),m_weight.data()+static_cast<int>(m_weight.size()),params.begin());
-            std::copy(m_bias.data(),m_bias.data()+static_cast<int>(m_bias.size()),params.begin()+m_weight.size());
-            return params;
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                Vector<Scalar> w(m_weight.size());
+                Vector<Scalar> b(m_bias.size());
+                w = m_weight.reshaped().unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                b = m_bias.reshaped().unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                std::vector<Scalar> params(m_weight.size()+m_bias.size());
+                std::copy(w.data(), w.data()+w.size(), params.begin());
+                std::copy(b.data(), b.data()+b.size(), params.begin()+w.size());
+                return params;
+            }
+            else
+            {
+                std::vector<Scalar> params(m_weight.size()+m_bias.size());
+                std::copy(m_weight.data(),m_weight.data()+static_cast<int>(m_weight.size()),params.begin());
+                std::copy(m_bias.data(),m_bias.data()+static_cast<int>(m_bias.size()),params.begin()+m_weight.size());
+                return params;
+            }
         }
 
         virtual void SetParameters(const std::vector<Scalar>& param) override
@@ -107,8 +121,22 @@ namespace MiniBrain
             {
                 throw std::invalid_argument("FullyConnected: parameter size mismatch");
             }
-            std::copy(param.begin(),param.begin()+static_cast<int>(m_weight.size()),m_weight.data());
-            std::copy(param.begin()+static_cast<int>(m_weight.size()),param.end(),m_bias.data());
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                for (int i = 0; i < m_weight.size(); i++)
+                {
+                    m_weight.reshaped()(i) = param[i];
+                }
+                for (int i = 0; i < m_bias.size(); i++)
+                {
+                    m_bias(i) = param[m_weight.size()+i];
+                }
+            }
+            else
+            {
+                std::copy(param.begin(),param.begin()+static_cast<int>(m_weight.size()),m_weight.data());
+                std::copy(param.begin()+static_cast<int>(m_weight.size()),param.end(),m_bias.data());
+            }
         }
 
         virtual std::string GetSubType()const override{return "FullyConnected";}

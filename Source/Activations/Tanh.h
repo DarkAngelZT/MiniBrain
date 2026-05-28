@@ -5,7 +5,8 @@
 
 namespace MiniBrain
 {
-    class Tanh : public Activation
+    template<typename T>
+    class Tanh : public Activation<T>
     {
     protected:
         /* data */
@@ -13,17 +14,26 @@ namespace MiniBrain
         Tanh(/* args */){}
         ~Tanh(){}
 
-        virtual void Forward(const Matrix& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
-            m_out.array() = InData.array().tanh();
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                return InData.unaryExpr([](const AutoDiffVar& x){ return tanh(x); });
+            }
+            else
+            {
+                Matrix<T> m_out(InData.rows(), InData.cols());
+                m_out.array() = InData.array().tanh();
+                return m_out;
+            }
         }
 
         // tanh'(x) = 1 - tanh(x)^2
         // J = d_a / d_z = diag(1 - a^2)
         // out = J * f = (1 - a^2) .* f
-        virtual void Backward(const Matrix& InData,const Matrix& NextLayerData) override
+        virtual void Backward(T& Loss) override
         {
-            m_din.array() = (Scalar(1) - m_out.array().square())*NextLayerData.array();
+            // m_din.array() = (Scalar(1) - m_out.array().square())*NextLayerData.array();
         }
 
         virtual std::string GetSubType()const override{return "Tanh";}

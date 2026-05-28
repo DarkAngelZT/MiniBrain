@@ -44,7 +44,8 @@ namespace MiniBrain
             NetworkData() {}
         };
 
-        void SaveParameter(Network* network,std::string path)
+        template<typename T>
+        void SaveParameter(Network<T>* network,std::string path)
         {
             std::vector<std::vector<Scalar>> data = network->GetParameters();
             std::ofstream file(path,std::ios::binary);
@@ -61,7 +62,8 @@ namespace MiniBrain
             file.close();
         }
 
-        void LoadParameter(Network* network,std::string path)
+        template<typename T>
+        void LoadParameter(Network<T>* network,std::string path)
         {
             std::ifstream file(path,std::ios::binary);
             NetworkData nd;

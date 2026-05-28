@@ -14,7 +14,7 @@ int main(int argc, char const *argv[])
     Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);
     Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
 
-    Activation<AutoDiffVar>* a1 = new ReLU();
+    Activation<AutoDiffVar>* a1 = new ReLU<AutoDiffVar>();
     
     nn.AddLayer(layer5);
     nn.AddLayer(a1);
@@ -84,13 +84,13 @@ int main(int argc, char const *argv[])
 
     // layer3->SetBatchSize(1);
     // // Matrix in = Matrix::Random(2,1);
-    Matrix<AutoDiffVar> output = nn.Predict(x);
+    Matrix<AutoDiffVar> output = nn.Forward(x);
     std::cout<<y<<std::endl;
     // // layer3->SetBatchSize(1);
     for (int i = 0; i < 10; i++)
     {
-        nn.Predict(x);
-        nn.Backward(x,y);
+        Matrix<AutoDiffVar> roundOut = nn.Forward(x);
+        nn.Backward(roundOut, y);
         nn.Update(opt);
     }   
     
@@ -98,7 +98,7 @@ int main(int argc, char const *argv[])
     // in<<5,6,7,8,9,10;
 
     std::cout<<"before:\n";
-    std::cout<< output<<std::endl<<"after:\n"<<nn.Predict(x)<<std::endl;
+    std::cout<< output<<std::endl<<"after:\n"<<nn.Forward(x)<<std::endl;
     
     return 0;
 }

@@ -12,7 +12,7 @@ namespace MiniBrain
         RegressionMSE(/* args */) {}
         ~RegressionMSE() {}
 
-        virtual void Evaluate(const Matrix& Result, const Matrix& Target) override
+        virtual AutoDiffVar Evaluate(const Matrix<AutoDiffVar>& Result, const Matrix<AutoDiffVar>& Target) override
         {
             const int nobs = Result.cols();
             const int nvar = Result.rows();
@@ -20,14 +20,9 @@ namespace MiniBrain
             {
                 throw std::invalid_argument("RegressionMSE: target data dimension mismatch");
             }
-            m_din.resize(nvar,nobs);
-            m_din.noalias() = Result - Target;
-        }
-
-        virtual Scalar GetLoss() const override
-        {
-            //devide by 2, thus remove number 2 in derivative
-            return m_din.squaredNorm()/m_din.cols() * 0.5f;
+            Matrix<AutoDiffVar> m_din(nvar, nobs);
+            m_din = Result - Target;
+            return m_din.squaredNorm() / (2 * m_din.cols());
         }
 
         virtual std::string GetSubType()const override{return "RegressionMSE";}

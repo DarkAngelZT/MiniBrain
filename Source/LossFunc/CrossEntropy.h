@@ -13,36 +13,33 @@ namespace MiniBrain
         ~CrossEntropy_Multi() {}
 
         // target is a matrix with each column representing an observation
-        virtual void Evaluate(const Matrix& Result, const Matrix& Target) override
+        virtual AutoDiffVar Evaluate(const Matrix<AutoDiffVar>& Result, const Matrix<AutoDiffVar>& Target) override
         {
             const int nobs = Result.cols();
             const int nvar = Result.rows();
+            Scalar batch_size = static_cast<float>(nobs);
             if (Target.cols() != nobs || Target.rows() != nvar)
             {
-                throw std::invalid_argument("RegressionMSE: target data dimension mismatch");
+                throw std::invalid_argument("CrossEntropy_Multi: target data dimension mismatch");
             }
             // Compute the derivative of the input of this layer
             // L = -sum(log(phat) * y)
             // in = phat
             // d(L) / d(in) = -y / phat
-            m_din.resize(nvar,nobs);
-            m_din.noalias() = -Target.cwiseQuotient(Result);
-        }
+            //以上手工推导逻辑仅做参考，现在换自动微分了，可以直接照搬公式
 
-        virtual Scalar GetLoss() const override
-        {
-            Scalar r = 0.f;
-            const int nelem = m_din.size();
-            const Scalar* din_data = m_din.data();
+            AutoDiffVar total_loss = 0.0f;
+            const Scalar eps = 1e-7f; // 防止 log(0) 导致的数值不稳定
 
-            for (int i = 0; i < nelem; i++)
-            {
-                if(din_data[i] < 0.f)
-                {
-                    r += std::log(-din_data[i]);
-                }
-            }
-            return r/m_din.cols();
+            Matrix<AutoDiffVar> clipped_result = Result.unaryExpr([eps](const AutoDiffVar& x) {
+                return x.expr->val < eps ? AutoDiffVar(eps) : x;
+            });
+
+            // 直接利用 Eigen 的一元数组函数和点乘，一行代码算完整个 Batch 的交叉熵
+            // .array().log() 会自动触发 autodiff 的全局 log 重载，完美录制计算图
+            // 最后的 .sum() 瞬间把整个二维矩阵的误差聚合成一个孤立的 AutoDiffVar 标量根节点
+            AutoDiffVar total_loss = -(Target.array() * clipped_result.array().log()).sum();
+            return total_loss / batch_size;
         }
 
         virtual std::string GetSubType()const override{return "CrossEntropy_Multi";}

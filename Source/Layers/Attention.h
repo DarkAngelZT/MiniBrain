@@ -8,12 +8,13 @@
 
 namespace MiniBrain
 {
-    class Attention : public Layer
+    template<typename T>
+    class Attention : public Layer<T>
     {
         int d_feat;
         // 权重矩阵
-        Matrix Wq, Wk, Wv;
-        Matrix dWq, dWk, dWv;
+        Matrix<T> Wq, Wk, Wv;
+        Matrix<Scalar> dWq, dWk, dWv;
     public:
         Attention(int inputSize, int outputSize, int featureCount):Layer(inputSize, outputSize)
         {
@@ -31,22 +32,24 @@ namespace MiniBrain
 
         }
 
-        virtual void Forward(const Matrix& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             
         }
 
-        virtual void Update(Optimizer& opt) override
+        void Backward(T& Loss) override
         {
-            ConstAlignedMapVec dw(dWq.data(),dWq.size());
-            ConstAlignedMapVec db(dWk.data(),dWk.size());
-            ConstAlignedMapVec dv(dWv.data(),dWv.size());
-            AlignedMapVec w(Wq.data(),Wq.size());
-            AlignedMapVec b(Wk.data(),Wk.size());
-            AlignedMapVec v(Wv.data(),Wv.size());
-            opt.Update(dw,w);
-            opt.Update(db,b);
-            opt.Update(dv,v);
+            
+        }
+
+        virtual void Update(Optimizer<Scalar>& opt) override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                opt.Update(dWq, Wq);
+                opt.Update(dWk, Wk);
+                opt.Update(dWv, Wv);
+            }
         }
 
         virtual std::vector<Scalar> GetParameters() const override

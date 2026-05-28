@@ -6,17 +6,18 @@
 
 namespace MiniBrain
 {
-    class Convolutional : public Layer
+    template<typename T>
+    class Convolutional : public Layer<T>
     {
     protected:
         const internal::ConvDims m_dim;
-        Vector m_filterData;
-        Vector m_dfData;
-        Vector m_bias;
-        Vector m_db;
+        Vector<T> m_filterData;
+        Vector<Scalar> m_dfData;
+        Vector<T> m_bias;
+        Vector<Scalar> m_db;
         
-        Matrix m_out;
-        Matrix m_din;
+        // Matrix m_out;
+        // Matrix m_din;
     public:
         Convolutional(const int inWidth,const int inHeight,
             const int inChannels, const int outChannels, const int windowWidth, const int windowHeight):
@@ -27,16 +28,6 @@ namespace MiniBrain
             Init();
         }
         ~Convolutional() {}
-
-        virtual const Matrix& Output() const override
-        {
-            return m_out;
-        }
-
-        virtual const Matrix& GetBackpropData() const override
-        {
-            return m_din;
-        }
 
         virtual void Init() override
         {
@@ -57,10 +48,11 @@ namespace MiniBrain
             rng.SetNormalDistRandom(m_bias.data(), m_dim.outChannels,mu,sigma);
         }
 
-        virtual void Forward(const Matrix& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             const int nObs = InData.cols();
 
+            Matrix<T> m_out;
             m_out.resize(m_outSize, nObs);
 
             internal::Convolve_Valid(m_dim, InData.data(),true,nObs,m_filterData.data(),m_out.data());
@@ -71,9 +63,10 @@ namespace MiniBrain
             {
                 m_out.block(channelStartRow, 0, channelNElem,nObs).array() += m_bias[i];
             }
+            return m_out;
         }
 
-        virtual void Backward(const Matrix& LastLayerData,const Matrix& BackPropData) override
+        virtual void Backward(T& Loss) override
         {
             const int nObs = LastLayerData.cols();
             // z_j = sum_i(conv(in_i, w_ij)) + b_j
@@ -109,14 +102,13 @@ namespace MiniBrain
             internal::Convolve_Full(convFullDim, BackPropData.data(), nObs, m_filterData.data(), m_din.data());
         }
 
-        virtual void Update(Optimizer&opt) override
+        virtual void Update(Optimizer<Scalar>& opt) override
         {
-            ConstAlignedMapVec dw(m_dfData.data(),m_dfData.size());
-            ConstAlignedMapVec db(m_db.data(),m_db.size());
-            AlignedMapVec w(m_filterData.data(),m_filterData.size());
-            AlignedMapVec b(m_bias.data(),m_bias.size());
-            opt.Update(dw,w);
-            opt.Update(db,b);
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                opt.Update(m_dfData,m_filterData);
+                opt.Update(m_db,m_bias);
+            }
         }
 
         virtual std::vector<Scalar> GetParameters() const override

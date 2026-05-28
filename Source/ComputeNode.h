@@ -12,7 +12,5 @@ namespace MiniBrain
             virtual Matrix<T> Forward(const Matrix<T>& InData) = 0;
 
             virtual void Backward(T& Loss) = 0;
-
-            virtual const Matrix<T>& GetBackpropData() const = 0;
     };
 } // namespace MiniBrain

@@ -4,52 +4,60 @@
 
 namespace MiniBrain
 {
-    class GRU : public Layer
+    template<typename T>
+    class GRU : public Layer<T>
     {
     protected:
         int m_hiddenSize;
         int m_BatchSize;
 
-        Matrix m_z;
-        Matrix m_r;
-        Matrix m_h;
+        Matrix<T> m_z;
+        Matrix<T> m_r;
+        // Matrix<T> m_h;
 
-        Matrix m_h_prev;
-        Matrix m_h_tilde;
+        Matrix<Scalar> m_h_prev;        
 
-        Matrix m_weight_z;
-        Matrix m_weight_r;
-        Matrix m_weight_h;
+        Matrix<T> m_weight_z;
+        Matrix<T> m_weight_r;
+        Matrix<T> m_weight_h;
 
-        Vector m_bias_z;
-        Vector m_bias_r;
-        Vector m_bias_h;
+        Vector<T> m_bias_z;
+        Vector<T> m_bias_r;
+        Vector<T> m_bias_h;
 
-        Matrix m_Uz;
-        Matrix m_Ur;
-        Matrix m_Uh;
+        Matrix<T> m_Uz;
+        Matrix<T> m_Ur;
+        Matrix<T> m_Uh;
         
-        Matrix m_dWz,m_dWr,m_dWh;
-        Matrix m_dUz,m_dUr,m_dUh;
-        Vector m_dbz,m_dbr,m_dbh;
-        Matrix m_din;
+        Matrix<Scalar> m_dWz,m_dWr,m_dWh;
+        Matrix<Scalar> m_dUz,m_dUr,m_dUh;
+        Vector<Scalar> m_dbz,m_dbr,m_dbh;
+        // Matrix<T> m_din;
 
-        Matrix Sigmoid(const Matrix& InData)
+        Matrix<T> Sigmoid(const Matrix<T>& InData)
         {
-            return 1.0f/(1.0f + (-InData.array()).exp());
+            if constexpr (std::is_same_v<T, AutoDiffVar>) 
+            {
+                using autodiff::exp;
+                return InData.unaryExpr([](const AutoDiffVar& x) { return 1.0f / (1.0f + exp(-x)); });
+            }
+            else    
+            {
+                return 1.0f/(1.0f + (-InData.array()).exp());
+            }
         }
 
-        static void SerializeParameter(const Matrix& m, std::vector<Scalar>& params, int offset=0)
+        static void SerializeParameter(const Matrix<T>& m, std::vector<Scalar>& params, int offset=0)
         {
             std::copy(m.data(),m.data()+static_cast<int>(m.size()),params.begin()+offset);
         }
 
-        static void DeserializeParameter(const std::vector<Scalar>& params, Matrix& m, int offset=0)
+        static void DeserializeParameter(const std::vector<Scalar>& params, Matrix<T>& m, int offset=0)
         {
             std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
         }
 
-        static void DeserializeParameter(const std::vector<Scalar>& params, Vector& m, int offset=0)
+        static void DeserializeParameter(const std::vector<Scalar>& params, Vector<T>& m, int offset=0)
         {
             std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
         }
@@ -62,24 +70,88 @@ namespace MiniBrain
         }
         ~GRU () {}
 
-        virtual void Forward(const Matrix& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             const int nobs = InData.cols();
             if (nobs != m_BatchSize)
             {
                 SetBatchSize(nobs);
             }
-            
-            m_h_prev = m_h;
-            m_z.noalias() = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
-            m_r.noalias() = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev).colwise()+m_bias_r);
-            m_h_tilde.array() = ((m_weight_h.transpose() * InData + m_Uh.transpose() * (m_r.array() * m_h_prev.array()).matrix()).colwise() + m_bias_h).array().tanh();
-            m_h.array() = (1.0f - m_z.array())*m_h_prev.array() + m_z.array()*m_h_tilde.array();
+            Matrix<T> m_h(m_hiddenSize, nobs);
+            Matrix<T> m_h_tilde;
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                using autodiff::tanh;
+
+                Matrix<T> h_prev_T = m_h_prev.template cast<T>();
+                m_z = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
+                m_r = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev).colwise()+m_bias_r);
+                
+                Matrix<T> r_h(m_hiddenSize, nobs);
+                for(int j = 0; j < nobs; ++j) {
+                    r_h.col(j) = m_r.col(j).array() * h_prev_T.col(j).array();
+                }
+                Matrix<T> h_lin = (m_weight_h.transpose() * InData + m_Uh.transpose() * r_h).colwise() + m_bias_h;
+                m_h_tilde = h_lin.unaryExpr([](const AutoDiffVar& x) { return tanh(x); });
+                
+                m_h.resize(m_hiddenSize, nobs);
+                for(int j = 0; j < nobs; ++j) {
+                    m_h.col(j) = (1.0f - m_z.col(j).array()) * h_prev_T.col(j).array() + m_z.col(j).array() * m_h_tilde.col(j).array();
+                }
+
+                // 提取数值，刷新常驻历史记忆
+                m_h_prev = m_h.unaryExpr([](const T& x) {
+                    return static_cast<Scalar>(x.expr->val);
+                });
+            }
+            else
+            {
+                m_z.noalias() = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
+                m_r.noalias() = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev).colwise()+m_bias_r);
+                m_h_tilde.array() = ((m_weight_h.transpose() * InData + m_Uh.transpose() * (m_r.array() * m_h_prev.array()).matrix()).colwise() + m_bias_h).array().tanh();
+                m_h.array() = (1.0f - m_z.array())*m_h_prev.array() + m_z.array()*m_h_tilde.array();
+                
+                // 提取数值，刷新常驻历史记忆
+                m_h_prev = m_h;
+            }
+
+            return m_h;
         }
 
-        virtual void Backward(const Matrix& InData, const Matrix& BackpropData) override
+        virtual void Backward(T& Loss) override
         {
-            const int nobs = InData.cols();
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                int total_params = 
+                    m_weight_z.size() + m_Uz.size() + m_bias_z.size() +
+                    m_weight_r.size() + m_Ur.size() + m_bias_r.size() +
+                    m_weight_h.size() + m_Uh.size() + m_bias_h.size();
+
+                VectorX<AutoDiffVar> params(total_params);
+                // 按严格的固有内存顺序，把 9 个矩阵的大乱炖“全量展平拼接”
+                int offset = 0;
+                auto pack = [&](const auto& matrix) {
+                    params.segment(offset, matrix.size()) = matrix.reshaped();
+                    offset += matrix.size();
+                };
+                
+                pack(m_weight_z); pack(m_Uz); pack(m_bias_z);
+                pack(m_weight_r); pack(m_Ur); pack(m_bias_r);
+                pack(m_weight_h); pack(m_Uh); pack(m_bias_h);
+
+                VectorX<AutoDiffVar> gradients = autodiff::gradient(Loss, params);
+                // 按照同样的顺序，把梯度“全量展平拼接”回 9 个矩阵
+                offset = 0;
+                auto unpack = [&](Matrix<Scalar>& gradDest, const Matrix<Scalar>& matrix) {
+                    gradDest = gradients.segment(offset, matrix.size()).reshaped(matrix.rows(), matrix.cols());
+                    offset += matrix.size();
+                };
+
+                unpack(m_dWz, m_weight_z); unpack(m_dUz, m_Uz); unpack(m_dbz, m_bias_z);
+                unpack(m_dWr, m_weight_r); unpack(m_dUr, m_Ur); unpack(m_dbr, m_bias_r);
+                unpack(m_dWh, m_weight_h); unpack(m_dUh, m_Uh); unpack(m_dbh, m_bias_h);
+            }
+            /*const int nobs = InData.cols();
             Matrix m_dz(m_hiddenSize,nobs),m_dr(m_hiddenSize,nobs),m_dh(m_hiddenSize,nobs);
             m_dz.array() = BackpropData.array() * (m_h_tilde.array() - m_h.array()) * m_z.array() * (1.0f-m_z.array());
             m_dh.array() = BackpropData.array() * m_z.array() * (1.0f-m_h_tilde.array().square());
@@ -99,20 +171,10 @@ namespace MiniBrain
             m_dWz.noalias() = m_dz*InData.transpose();
             //dot(m_h.T, m_dz)
             m_dUz.noalias() = m_dz*m_h.transpose();
-            m_dbz.noalias() = m_dz.rowwise().mean();
+            m_dbz.noalias() = m_dz.rowwise().mean();*/
 
-            m_din.resize(m_inSize,nobs);
-            m_din.noalias() = m_weight_h * m_dh + m_weight_r * m_dr + m_weight_z * m_dz;
-        }
-
-        virtual const Matrix& Output() const override
-        {
-            return m_h;
-        }
-
-        virtual const Matrix& GetBackpropData() const override
-        {
-            return m_din;
+            // m_din.resize(m_inSize,nobs);
+            // m_din.noalias() = m_weight_h * m_dh + m_weight_r * m_dr + m_weight_z * m_dz;
         }
 
         virtual void Init() override
@@ -128,8 +190,8 @@ namespace MiniBrain
             m_bias_h.resize(m_hiddenSize);
 
             m_h_prev.resize(m_hiddenSize,1);
-            m_h_tilde.resize(m_hiddenSize,1);
-            m_h.resize(m_hiddenSize,1);
+            // m_h_tilde.resize(m_hiddenSize,1);
+            // m_h.resize(m_hiddenSize,1);
 
             m_dWz.resize(m_inSize,m_hiddenSize);
             m_dWr.resize(m_inSize,m_hiddenSize);
@@ -153,35 +215,29 @@ namespace MiniBrain
             RNG.SetNormalDistRandom(m_Uh.data(),m_Uh.size(),mu,sigma);
         }
 
-        virtual void Update(Optimizer& opt) override
+        virtual void Update(Optimizer<Scalar>& opt) override
         {
-            AlignedMapVec Wz(m_weight_z.data(), m_weight_z.size());
-            AlignedMapVec Wr(m_weight_r.data(), m_weight_r.size());
-            AlignedMapVec Wh(m_weight_h.data(), m_weight_h.size());
-            AlignedMapVec Uz(m_Uz.data(), m_Uz.size());
-            AlignedMapVec Ur(m_Ur.data(), m_Ur.size());
-            AlignedMapVec Uh(m_Uh.data(), m_Uh.size());
-            AlignedMapVec Bz(m_bias_z.data(), m_bias_z.size());
-            AlignedMapVec Br(m_bias_r.data(), m_bias_r.size());
-            AlignedMapVec Bh(m_bias_z.data(), m_bias_z.size());
-            opt.Update(ConstAlignedMapVec(m_dWz.data(), m_dWz.size()), Wz);
-            opt.Update(ConstAlignedMapVec(m_dWr.data(), m_dWr.size()), Wr);
-            opt.Update(ConstAlignedMapVec(m_dWh.data(), m_dWh.size()), Wh);
-            opt.Update(ConstAlignedMapVec(m_dUz.data(), m_dUz.size()), Uz);
-            opt.Update(ConstAlignedMapVec(m_dUr.data(), m_dUr.size()), Ur);
-            opt.Update(ConstAlignedMapVec(m_dUh.data(), m_dUh.size()), Uh);
-            opt.Update(ConstAlignedMapVec(m_dbz.data(), m_dbz.size()), Bz);
-            opt.Update(ConstAlignedMapVec(m_dbr.data(), m_dbr.size()), Br);
-            opt.Update(ConstAlignedMapVec(m_dbh.data(), m_dbh.size()), Bh);
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                opt.Update(m_dWz, m_weight_z);
+                opt.Update(m_dWr, m_weight_r);
+                opt.Update(m_dWh, m_weight_h);
+                opt.Update(m_dUz, m_Uz);
+                opt.Update(m_dUr, m_Ur);
+                opt.Update(m_dUh, m_Uh);
+                opt.Update(m_dbz, m_bias_z);
+                opt.Update(m_dbr, m_bias_r);
+                opt.Update(m_dbh, m_bias_h);
+            }
         }
 
         void SetBatchSize(int Size)
         {
             m_BatchSize = Size;
             //隐状态数据比较特殊，不能随意改变batch大小，否则会导致数据丢失
-            m_h.resize(m_hiddenSize, Size);
+            // m_h.resize(m_hiddenSize, Size);
             m_h_prev.resize(m_hiddenSize, Size);
-            m_h_tilde.resize(m_hiddenSize, Size);
+            // m_h_tilde.resize(m_hiddenSize, Size);
 
             m_z.resize(m_hiddenSize,Size);
             m_r.resize(m_hiddenSize,Size);
@@ -189,9 +245,9 @@ namespace MiniBrain
 
         void ResetMemory()
         {
-            m_h.setZero();
+            // m_h.setZero();
             m_h_prev.setZero();
-            m_h_tilde.setZero();
+            // m_h_tilde.setZero();
         }
 
         virtual std::vector<Scalar> GetParameters() const override

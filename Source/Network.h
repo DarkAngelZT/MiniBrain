@@ -13,7 +13,7 @@ namespace MiniBrain
     {
     protected:
         std::vector<IComputeNode<T> *> m_layers;
-        LossFunc<T> *m_lossFunc=nullptr;
+        LossFunc *m_lossFunc=nullptr;
         Random m_defaultRNG;
         Random& m_rng;
 
@@ -55,7 +55,7 @@ namespace MiniBrain
             const int numLayers = GetLayerAmount();
             if (numLayers <= 0)
             {
-                return;
+                return Matrix<T>();
             }
             
             if(InData.rows() != static_cast<Layer<T>*>(m_layers[0])->GetInSize())
@@ -72,34 +72,30 @@ namespace MiniBrain
             return output;
         }
 
-        virtual void Backward(const Matrix<T>& Input, const Matrix<T>& Target)
+        virtual void Backward(const Matrix<T>& Output, const Matrix<T>& Target)
         {
-            const int nLayer = GetLayerAmount();
-            if (nLayer <= 0)
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                return;
-            }
-            
-            IComputeNode<T>* FirstLayer = m_layers[0];
-            IComputeNode<T>* LastLayer = m_layers[nLayer-1];
+                
+                const int nLayer = GetLayerAmount();
+                if (nLayer <= 0)
+                {
+                    return;
+                }
+                
+                IComputeNode<T>* FirstLayer = m_layers[0];
+                IComputeNode<T>* LastLayer = m_layers[nLayer-1];
 
-            m_lossFunc->Evaluate(LastLayer->Output(),Target);
-            
-            if (nLayer == 1)
-            {
-                FirstLayer->Backward(Input,m_lossFunc->GetBackpropData());
-                return;
-            }
-            
-            T loss = m_lossFunc->GetLoss();
+                AutoDiffVar loss = m_lossFunc->Evaluate(Output, Target);
 
-            for (int i = nLayer-1; i >=0; i--)
-            {
-                m_layers[i]->Backward(loss);
+                for (int i = nLayer-1; i >=0; i--)
+                {
+                    m_layers[i]->Backward(loss);
+                }
             }
         }
 
-        virtual void Update(Optimizer<T>& opt)
+        virtual void Update(Optimizer<Scalar>& opt)
         {
             const int nLayer = GetLayerAmount();
             if (nLayer <= 0)
@@ -113,7 +109,7 @@ namespace MiniBrain
                 {
                     dynamic_cast<Layer<T>*>(m_layers[i])->Update(opt);
                 }                
-            }            
+            } 
         }
 
         Network() :
@@ -155,7 +151,7 @@ namespace MiniBrain
             m_layers.push_back(layer);
         }
 
-        void SetLossFunc(LossFunc<T> *lossFunc)
+        void SetLossFunc(LossFunc *lossFunc)
         {
             m_lossFunc = lossFunc;
         }
@@ -165,23 +161,9 @@ namespace MiniBrain
             return m_layers.size();
         }
 
-        const LossFunc<T>* GetLossFunc() const
+        const LossFunc* GetLossFunc() const
         {
             return m_lossFunc;
-        }
-
-        virtual Matrix<T> Predict(const Matrix<T>& Input)
-        {
-            const int nLayer = GetLayerAmount();
-
-            if (nLayer <= 0)
-            {
-                return Matrix<T>();
-            }
-            
-            Matrix<T> output = Forward(Input);
-
-            return output;
         }
 
         virtual std::vector<std::vector<Scalar>> GetParameters()const
