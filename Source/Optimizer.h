@@ -39,6 +39,19 @@ namespace MiniBrain
             // Update the original weight matrix with the new values
             Weight = w.cast<AutoDiffVar>();
         }
+
+        void Update(const Vector<T>& Indw, Vector<AutoDiffVar>& Weight)
+        {
+            Vector<Scalar> dw(Indw.size());
+            Vector<Scalar> w(Weight.size());
+            dw = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+            w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+            ConstAlignedMapVec<Scalar> dvec(dw.data(), dw.size());
+            AlignedMapVec<Scalar> vec(w.data(), w.size());
+            Update(dvec, vec);
+            // Update the original weight vector with the new values
+            Weight = w.cast<AutoDiffVar>();
+        }
     };
     
 }

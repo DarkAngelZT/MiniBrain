@@ -55,12 +55,32 @@ namespace MiniBrain
 
         static void DeserializeParameter(const std::vector<Scalar>& params, Matrix<T>& m, int offset=0)
         {
-            std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                for (int i = 0; i < m.size(); i++)
+                {
+                    m.reshaped()(i) = params[offset + i];
+                }
+            }
+            else
+            {
+                std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+            }
         }
 
         static void DeserializeParameter(const std::vector<Scalar>& params, Vector<T>& m, int offset=0)
         {
-            std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                for (int i = 0; i < m.size(); i++)
+                {
+                    m.reshaped()(i) = params[offset + i];
+                }
+            }
+            else
+            {
+                std::copy(params.begin()+offset,params.begin()+offset+static_cast<int>(m.size()),m.data());
+            }
         }
 
     public:
@@ -208,12 +228,12 @@ namespace MiniBrain
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
         {
             Init();
-            RNG.SetNormalDistRandom(m_weight_z.data(),m_weight_z.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_weight_r.data(),m_weight_r.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_weight_h.data(),m_weight_h.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_Uz.data(),m_Uz.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_Ur.data(),m_Ur.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_Uh.data(),m_Uh.size(),mu,sigma);
+            RNG.SetNormalDistRandom(m_weight_z,mu,sigma);
+            RNG.SetNormalDistRandom(m_weight_r,mu,sigma);
+            RNG.SetNormalDistRandom(m_weight_h,mu,sigma);
+            RNG.SetNormalDistRandom(m_Uz,mu,sigma);
+            RNG.SetNormalDistRandom(m_Ur,mu,sigma);
+            RNG.SetNormalDistRandom(m_Uh,mu,sigma);
         }
 
         virtual void Update(Optimizer<Scalar>& opt) override
@@ -257,27 +277,64 @@ namespace MiniBrain
             m_Uz.size()+m_Ur.size()+m_Uh.size()+
             m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
             std::vector<Scalar> params(size);
+            
+            const Matrix<T>* z;
+            const Matrix<T>* r;
+            const Matrix<T>* h;
+
+            const Vector<T>* bias_z;
+            const Vector<T>* bias_r;
+            const Vector<T>* bias_h;
+
+            const Matrix<T>* Uz;
+            const Matrix<T>* Ur;
+            const Matrix<T>* Uh;
+
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                z = &m_weight_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                r = &m_weight_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                h = &m_weight_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_z = &m_bias_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_r = &m_bias_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_h = &m_bias_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Uz = &m_Uz.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Ur = &m_Ur.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Uh = &m_Uh.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+            }
+            else
+            {
+                z = &m_weight_z;
+                r = &m_weight_r;
+                h = &m_weight_h;
+                bias_z = &m_bias_z;
+                bias_r = &m_bias_r;
+                bias_h = &m_bias_h;
+                Uz = &m_Uz;
+                Ur = &m_Ur;
+                Uh = &m_Uh;
+            }
 
             int offset=0;
-            SerializeParameter(m_weight_z,params,offset);
+            SerializeParameter(*z,params,offset);
             offset+=m_weight_z.size();
-            SerializeParameter(m_weight_r,params,offset);
+            SerializeParameter(*r,params,offset);
             offset+=m_weight_r.size();
-            SerializeParameter(m_weight_h,params,offset);
+            SerializeParameter(*h,params,offset);
             offset+=m_weight_h.size();
 
-            SerializeParameter(m_Uz,params,offset);
+            SerializeParameter(*Uz,params,offset);
             offset+=m_Uz.size();
-            SerializeParameter(m_Ur,params,offset);
+            SerializeParameter(*Ur,params,offset);
             offset+=m_Ur.size();
-            SerializeParameter(m_Uh,params,offset);
+            SerializeParameter(*Uh,params,offset);
             offset+=m_Uh.size();
 
-            SerializeParameter(m_bias_z,params,offset);
+            SerializeParameter(*bias_z,params,offset);
             offset+=m_bias_z.size();
-            SerializeParameter(m_bias_r,params,offset);
+            SerializeParameter(*bias_r,params,offset);
             offset+=m_bias_r.size();
-            SerializeParameter(m_bias_h,params,offset);
+            SerializeParameter(*bias_h,params,offset);
             offset+=m_bias_h.size();
 
             return params;

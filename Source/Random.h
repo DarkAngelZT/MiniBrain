@@ -1,5 +1,6 @@
 #pragma once
 #include <random>
+#include "TypeDef.h"
 
 namespace MiniBrain
 {
@@ -15,15 +16,27 @@ namespace MiniBrain
         }
         ~Random() {}
 
+        template<typename T>
         void SetNormalDistRandom(
-            Scalar* OutArray, const int size,
+            Eigen::MatrixBase<T>& OutArray,
             const Scalar& mu = 0.f, const Scalar& sigma = 1.f)
         {
             std::normal_distribution<Scalar> Dist(mu, sigma);
-            for (int i = 0; i < size; i++)
-            {
-                OutArray[i] = Dist(m_gen);
-            }            
+
+             if constexpr (std::is_same_v<T, AutoDiffVar>)
+             {
+                 for (int i = 0; i < OutArray.size(); i++)
+                 {
+                    OutArray(i) = static_cast<Scalar>(Dist(m_gen));
+                 }
+             }
+             else
+             {
+                 for (int i = 0; i < OutArray.size(); i++)
+                 {
+                    OutArray(i) = Dist(m_gen);
+                 }
+             }
         }
 
         Scalar Rand()

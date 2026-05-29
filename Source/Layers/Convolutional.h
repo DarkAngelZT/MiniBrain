@@ -45,8 +45,8 @@ namespace MiniBrain
         {
             Init();
             const int filterDataSize = m_dim.inChannels * m_dim.outChannels * m_dim.FilterRows * m_dim.FilterCols;
-            rng.SetNormalDistRandom(m_filterData.data(),filterDataSize,mu,sigma);
-            rng.SetNormalDistRandom(m_bias.data(), m_dim.outChannels,mu,sigma);
+            rng.SetNormalDistRandom(m_filterData,mu,sigma);
+            rng.SetNormalDistRandom(m_bias,mu,sigma);
         }
 
         virtual Matrix<T> Forward(const Matrix<T>& InData) override
@@ -174,8 +174,20 @@ namespace MiniBrain
             {
                 throw std::invalid_argument("[convolution]: parameter size mismatch");
             }
-            std::copy(param.begin(),param.begin()+static_cast<int>(m_filterData.size()),m_filterData.data());
-            std::copy(param.begin()+static_cast<int>(m_filterData.size()), param.end(),m_bias.end());
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                Vector<Scalar> w(m_filterData.size());
+                Vector<Scalar> b(m_bias.size());
+                std::copy(param.begin(), param.begin() + static_cast<int>(m_filterData.size()), w.data());
+                std::copy(param.begin() + static_cast<int>(m_filterData.size()), param.end(), b.data());
+                m_filterData = w.unaryExpr([](const Scalar& x){ return AutoDiffVar(x); });
+                m_bias = b.unaryExpr([](const Scalar& x){ return AutoDiffVar(x); });
+            }
+            else
+            {
+                std::copy(param.begin(),param.begin()+static_cast<int>(m_filterData.size()),m_filterData.data());
+                std::copy(param.begin()+static_cast<int>(m_filterData.size()), param.end(),m_bias.data());
+            }
         }
 
         virtual std::string GetSubType()const override{return "Convolution";}

@@ -40,8 +40,8 @@ namespace MiniBrain
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
         {
             Init();
-            RNG.SetNormalDistRandom(m_weight.data(),m_weight.size(),mu,sigma);
-            RNG.SetNormalDistRandom(m_bias.data(),m_bias.size(),mu,sigma);
+            RNG.SetNormalDistRandom(m_weight,mu,sigma);
+            RNG.SetNormalDistRandom(m_bias,mu,sigma);
         }
 
         virtual Matrix<T> Forward(const Matrix<T>& InData) override

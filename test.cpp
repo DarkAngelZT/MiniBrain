@@ -7,20 +7,20 @@ using namespace MiniBrain;
 int main(int argc, char const *argv[])
 {
     Network<AutoDiffVar> nn,nn2;
-    // Layer* layer1 = new FullyConnected(2,6);
-    // Layer* layer2 = new FullyConnected(6,1);
+    Layer<AutoDiffVar>* layer1 = new FullyConnected<AutoDiffVar>(1,6);
+    Layer<AutoDiffVar>* layer2 = new FullyConnected<AutoDiffVar>(6,1);
     // GRU* layer3 = new GRU(1,6);
     // Layer* layer4 = new FullyConnected(12,12);
-    Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);
-    Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
+    // Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);
+    // Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
 
     Activation<AutoDiffVar>* a1 = new ReLU<AutoDiffVar>();
     
-    nn.AddLayer(layer5);
+    nn.AddLayer(layer1);
     nn.AddLayer(a1);
     // nn.AddLayer(layer4);
     // nn.AddLayer(layer3);
-    nn.AddLayer(layer6);
+    nn.AddLayer(layer2);
 
     // Layer* layer7 = new Convolutional(10,10,1,2,3,3);
     // Layer* layer8 = new FullyConnected(8*8*2,2);
@@ -68,17 +68,17 @@ int main(int argc, char const *argv[])
     // }
 
 
-    Matrix<AutoDiffVar> x = Matrix<AutoDiffVar>::Random(100,2);
-    Matrix<AutoDiffVar> y = Matrix<AutoDiffVar>::Random(2,2);
+    // Matrix<AutoDiffVar> x = Matrix<AutoDiffVar>::Random(2,2);
+    // Matrix<AutoDiffVar> y = Matrix<AutoDiffVar>::Random(1,2);
     // Matrix x2 = Matrix::Random(100,2);
-    // Matrix x(1,6);
-    // Matrix y(1,6);
+    Matrix<AutoDiffVar> x(1,6);
+    Matrix<AutoDiffVar> y(1,6);
 
-    // x<<1,   2,
-    //     3,4,
-    //    5,6;
-    // y<<2, 3,
-    //     4, 5,6,7;
+    x<<1,   2,
+        3,4,
+       5,6;
+    y<<2, 3,
+        4, 5,6,7;
 
     // std::cout<<x<<std::endl;
 
