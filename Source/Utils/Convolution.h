@@ -63,7 +63,7 @@ namespace MiniBrain
         inline void MovingProduct(
             const int step, 
             const Eigen::Matrix<Scalar, Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
-            Eigen::Map<const Matrix>& mat2, Matrix& res)
+            Eigen::Map<const Matrix<Scalar>>& mat2, Matrix<Scalar>& res)
         {
             const int row1 = mat1.rows();
             const int col1 = mat1.cols();
@@ -86,7 +86,7 @@ namespace MiniBrain
         )
         {
             typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
-            typedef Eigen::Map<const Matrix> ConstMapMat;
+            typedef Eigen::Map<const Matrix<Scalar>> ConstMapMat;
             //flat Matrix
             const int flatRows = dim.ConvRows * nObs;
             const int flatCols = dim.FilterRows * dim.ChannelCols;
@@ -99,7 +99,7 @@ namespace MiniBrain
 
             const int& resRows = flatRows;
             const int resCols = dim.ConvCols * dim.outChannels;
-            Matrix res = Matrix::Zero(resRows,resCols);
+            Matrix<Scalar> res = Matrix<Scalar>::Zero(resRows,resCols);
             const int& step = dim.FilterRows;
             const int filterSize = dim.FilterRows*dim.FilterCols;
             const int filterStride = filterSize * dim.outChannels;
@@ -149,8 +149,86 @@ namespace MiniBrain
             }
         }
 
+        // 专门给 AutoDiff 训练模式使用的前向卷积工具函数
+        template <typename T>
+        void Convolve_Valid_Autodiff(
+            const ConvDims& dim,
+            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& InData,       // 输入改为模板 T
+            const int nObs,
+            const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& filterData,   // 权重改为模板 T
+            Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& dest               // 输出改为模板 T
+        )
+        {
+            dest.setZero();
+
+            const int outRows = dim.ConvRows;
+            const int outCols = dim.ConvCols;
+            const int outCells = outRows * outCols;
+            const int filterCells = dim.FilterRows * dim.FilterCols;
+            const int imgCells = dim.ImgRows * dim.ImgCols;
+
+            // ==========================================
+            // 1. 按照原版一维规律，重组权重矩阵 W (内部全部用 T)
+            // ==========================================
+            Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> W(dim.outChannels, dim.inChannels * filterCells);
+            const int filterStride = filterCells * dim.outChannels;
+
+            for (int ic = 0; ic < dim.inChannels; ++ic) {
+                int ic_offset = ic * filterStride;
+                for (int oc = 0; oc < dim.outChannels; ++oc) {
+                    int oc_offset = ic_offset + oc * filterCells;
+                    // 使用 block 建立 T 类型的表达式树依赖
+                    W.block(oc, ic * filterCells, 1, filterCells) = 
+                        filterData.block(oc_offset, 0, filterCells, 1).transpose();
+                }
+            }
+
+            // ==========================================
+            // 2. 针对每个样本构建临时的 Im2Col 矩阵 (内部全部用 T)
+            // ==========================================
+            for (int o = 0; o < nObs; ++o) 
+            {
+                Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> X_col(dim.inChannels * filterCells, outCells);
+
+                int col_idx = 0;
+                for (int r = 0; r < outRows; ++r) {
+                    for (int c = 0; c < outCols; ++c) {
+                        int row_idx = 0;
+                        for (int ic = 0; ic < dim.inChannels; ++ic) {
+                            int img_channel_start = ic * imgCells;
+                            
+                            for (int fr = 0; fr < dim.FilterRows; ++fr) {
+                                for (int fc = 0; fc < dim.FilterCols; ++fc) {
+                                    int img_r = r + fr;
+                                    int img_c = c + fc;
+                                    int img_pixel = img_channel_start + (img_r * dim.ImgCols + img_c);
+                                    
+                                    // 这里会将 InData 中的 varf/var 正确赋值给 X_col，保留计算图
+                                    X_col(row_idx++, col_idx) = InData(img_pixel, o);
+                                }
+                            }
+                        }
+                        col_idx++;
+                    }
+                }
+
+                // ==========================================
+                // 3. 核心大矩阵乘法 Y = W * X_col
+                // 此时 Eigen 会自动调用针对 autodiff::varf 重载的 operator*
+                // 这将在内存中生成极其高效的矩阵求导图节点
+                // ==========================================
+                Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> Y = W * X_col; 
+
+                // 4. 将结果无缝还原到输出矩阵 dest 对应的位置上
+                for (int oc = 0; oc < dim.outChannels; ++oc) {
+                    dest.block(oc * outCells, o, outCells, 1) = Y.block(oc, 0, 1, outCells).transpose();
+                }
+            }
+        }
+
+        //这是手工反向传播的工具函数，已经换用自动微分了
         // The moving_product() function for the "full" rule
-        inline void MovingProduct_Full(
+        /*inline void MovingProduct_Full(
             const int padding, const int step,
             const Eigen::Matrix<Scalar,  Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor>& mat1,
             const Matrix& mat2,
@@ -191,10 +269,11 @@ namespace MiniBrain
                 }
             }
             
-        }
+        }*/
 
+        //有自动微分之后这个反向传播的函数就不需要了，先注释掉
         // The main convolution function for the "full" rule 反向传播要用到
-        inline void Convolve_Full(const ConvDims& dim, const Scalar* src, const int nObs, const Scalar* filterData, Scalar* dest)
+        /*inline void Convolve_Full(const ConvDims& dim, const Scalar* src, const int nObs, const Scalar* filterData, Scalar* dest)
         {
             typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RMatrix;
             typedef Eigen::Map<const Matrix> ConstMapMat;
@@ -270,7 +349,7 @@ namespace MiniBrain
                 const int resCloHead = d * resRows;
                 std::memcpy(dest,resData+resCloHead+k*convRows,copyBytes);
             }
-        }
+        }*/
     } // namespace internal
     
 } // namespace MiniBrain

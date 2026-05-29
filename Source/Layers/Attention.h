@@ -1,6 +1,6 @@
 #ifndef ATTENTION_H
 #define ATTENTION_H
-
+#include <autodiff/reverse/var/eigen.hpp>
 #include "../Layer.h"
 #include "../Optimizer.h"
 #include <memory>

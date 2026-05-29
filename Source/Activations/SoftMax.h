@@ -22,6 +22,8 @@ namespace MiniBrain
                 // 2. 完全对齐推理分支：算出每一列的最大值系数（维度：1 x Cols）
                 Eigen::RowVectorX<Scalar> col_max = pure_data.colwise().maxCoeff();
 
+                Matrix<T> exp_matrix(InData.rows(), InData.cols());
+
                 for (int col = 0; col < InData.cols(); ++col) 
                 {
                      exp_matrix.col(col) = (InData.col(col).array() - col_max(col)).exp();

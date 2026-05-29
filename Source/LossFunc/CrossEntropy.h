@@ -38,7 +38,7 @@ namespace MiniBrain
             // 直接利用 Eigen 的一元数组函数和点乘，一行代码算完整个 Batch 的交叉熵
             // .array().log() 会自动触发 autodiff 的全局 log 重载，完美录制计算图
             // 最后的 .sum() 瞬间把整个二维矩阵的误差聚合成一个孤立的 AutoDiffVar 标量根节点
-            AutoDiffVar total_loss = -(Target.array() * clipped_result.array().log()).sum();
+            total_loss = -(Target.array() * clipped_result.array().log()).sum();
             return total_loss / batch_size;
         }
 

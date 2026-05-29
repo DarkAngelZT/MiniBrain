@@ -1,4 +1,5 @@
 #pragma once
+#include <autodiff/reverse/var/eigen.hpp>
 #include "../Eigen/Dense"
 #include "../Layer.h"
 #include "../Optimizer.h"
@@ -30,10 +31,10 @@ namespace MiniBrain
 
         virtual void Init() override
         {
-            m_weight.resize(m_inSize,m_outSize);
-            m_bias.resize(m_outSize);
-            m_dw.resize(m_inSize,m_outSize);
-            m_db.resize(m_outSize);
+            m_weight.resize(this->m_inSize,this->m_outSize);
+            m_bias.resize(this->m_outSize);
+            m_dw.resize(this->m_inSize,this->m_outSize);
+            m_db.resize(this->m_outSize);
         }
 
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
@@ -48,7 +49,7 @@ namespace MiniBrain
             const int nobs = InData.cols();
             //out = w .* in + b
             // m_out.resize(m_outSize, nobs);
-            Matrix<T> m_out(m_outSize, nobs);
+            Matrix<T> m_out(this->m_outSize, nobs);
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 m_out = m_weight.transpose()*InData;
@@ -69,9 +70,9 @@ namespace MiniBrain
                 m_dw.setZero();
                 m_db.setZero();
                 Vector<AutoDiffVar> params(m_weight.size()+m_bias.size());
-                params<< m_weight.reshaped(), m_bias.resized();
+                params<< m_weight.reshaped(), m_bias.reshaped();
                 Eigen::VectorXf grads = autodiff::gradient(Loss,params);
-                m_dw = grads.head(m_weight.size()).reshaped(m_inSize,m_outSize);
+                m_dw = grads.head(m_weight.size()).reshaped(this->m_inSize,this->m_outSize);
                 m_db = grads.tail(m_bias.size());
             }
             // const int nobs = LastLayerData.cols();

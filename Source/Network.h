@@ -41,7 +41,7 @@ namespace MiniBrain
                 {
                     return true;
                 }
-                if (static_cast<Layer*>(m_layers[i])->GetInSize() != static_cast<Layer*>(m_layers[j])->GetOutSize())
+                if (static_cast<Layer<T>*>(m_layers[i])->GetInSize() != static_cast<Layer<T>*>(m_layers[j])->GetOutSize())
                 {
                     return false;
                 }                                

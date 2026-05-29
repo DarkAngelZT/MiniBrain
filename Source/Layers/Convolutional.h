@@ -1,4 +1,5 @@
 #pragma once
+#include <autodiff/reverse/var/eigen.hpp>
 #include "../Eigen/Dense"
 #include "../Layer.h"
 #include "../Utils/Convolution.h"
@@ -21,7 +22,7 @@ namespace MiniBrain
     public:
         Convolutional(const int inWidth,const int inHeight,
             const int inChannels, const int outChannels, const int windowWidth, const int windowHeight):
-        Layer(inWidth * inHeight * inChannels, 
+        Layer<T>((inWidth * inHeight * inChannels), 
         (inWidth - windowWidth + 1) * (inHeight - windowHeight + 1) * outChannels), 
         m_dim(inChannels, outChannels, inHeight, inWidth, windowHeight, windowWidth)
         {
@@ -51,11 +52,16 @@ namespace MiniBrain
         virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             const int nObs = InData.cols();
-
             Matrix<T> m_out;
-            m_out.resize(m_outSize, nObs);
-
-            internal::Convolve_Valid(m_dim, InData.data(),true,nObs,m_filterData.data(),m_out.data());
+            m_out.resize(this->m_outSize, nObs);
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                internal::Convolve_Valid_Autodiff<T>(m_dim, InData, nObs, m_filterData, m_out);
+            }
+            else
+            {       
+                internal::Convolve_Valid(m_dim, InData.data(),true,nObs,m_filterData.data(),m_out.data());
+            }
             int channelStartRow = 0;
             const int channelNElem = m_dim.ConvRows * m_dim.ConvCols;
 
@@ -64,11 +70,39 @@ namespace MiniBrain
                 m_out.block(channelStartRow, 0, channelNElem,nObs).array() += m_bias[i];
             }
             return m_out;
+            
         }
 
         virtual void Backward(T& Loss) override
         {
-            const int nObs = LastLayerData.cols();
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int filterSize = m_filterData.size();
+                const int biasSize = m_bias.size();
+                const int totalSize = filterSize + biasSize;
+                Eigen::Matrix<T, Eigen::Dynamic, 1> all_params(totalSize);
+                all_params.head(filterSize) = m_filterData;
+                all_params.tail(biasSize) = m_bias;
+
+                // =================================================================
+                //只调用一次 gradient()，让 autodiff 只遍历一遍计算图，性能最大化
+                // =================================================================
+                auto all_grads = autodiff::gradient(Loss, all_params);
+
+                // =================================================================
+                // 将计算出的一维总梯度向量，分别拆分回对应的 Scalar 梯度向量中
+                // =================================================================
+                for (int i = 0; i < filterSize; ++i)
+                {
+                    m_dfData[i] = all_grads[i];
+                }
+
+                for (int i = 0; i < biasSize; ++i)
+                {
+                    m_db[i] = all_grads[filterSize + i]; // 偏置的梯度接在权重后面
+                }
+            }
+            // const int nObs = LastLayerData.cols();
             // z_j = sum_i(conv(in_i, w_ij)) + b_j
             //
             // d(z_k) / d(w_ij) = 0, if k != j
@@ -81,7 +115,7 @@ namespace MiniBrain
             //
             // d(z_j) / d(in_i) = conv_full_op(w_ij_rotate)
             // d(L) / d(in_i) = sum_j((d(z_j) / d(in_i)) * (d(L) / d(z_j))) = sum_j(conv_full(d(L) / d(z_j), w_ij_rotate))
-            internal::ConvDims backConvDim(
+            /*internal::ConvDims backConvDim(
                 nObs, m_dim.outChannels,m_dim.ChannelRows,
                 m_dim.ChannelCols,m_dim.ConvRows, m_dim.ConvCols);
             internal::Convolve_Valid(backConvDim, LastLayerData.data(),false,m_dim.inChannels,BackPropData.data(),m_dfData.data());
@@ -96,10 +130,10 @@ namespace MiniBrain
             ConstAlignedMapMat dbByObs(db.data(),m_dim.outChannels, nObs);
             m_db.noalias() = dbByObs.rowwise().mean();
             // Compute d(L) / d_in = conv_full(d(L) / d(z), w_rotate)
-            m_din.resize(m_inSize, nObs);
+           m_din.resize(m_inSize, nObs);
 
             internal::ConvDims convFullDim(m_dim.outChannels, m_dim.inChannels, m_dim.ConvRows, m_dim.ConvCols,m_dim.FilterRows,m_dim.FilterCols);
-            internal::Convolve_Full(convFullDim, BackPropData.data(), nObs, m_filterData.data(), m_din.data());
+            internal::Convolve_Full(convFullDim, BackPropData.data(), nObs, m_filterData.data(), m_din.data());*/
         }
 
         virtual void Update(Optimizer<Scalar>& opt) override
@@ -115,9 +149,23 @@ namespace MiniBrain
         {
             std::vector<Scalar> res(m_filterData.size() + m_bias.size());
 
-            std::copy(m_filterData.data(), m_filterData.data() + static_cast<int>(m_filterData.size()), res.begin());
-            std::copy(m_bias.data(), m_bias.data() + static_cast<int>(m_bias.size()), res.begin() + m_filterData.size());
-            return res;
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                Vector<Scalar> w(m_filterData.size());
+                Vector<Scalar> b(m_bias.size());
+                w = m_filterData.reshaped().unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                b = m_bias.reshaped().unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+                std::vector<Scalar> params(m_filterData.size()+m_bias.size());
+                std::copy(w.data(), w.data()+w.size(), params.begin());
+                std::copy(b.data(), b.data()+b.size(), params.begin()+w.size());
+                return params;
+            }
+            else
+            {
+                std::copy(m_filterData.data(), m_filterData.data() + static_cast<int>(m_filterData.size()), res.begin());
+                std::copy(m_bias.data(), m_bias.data() + static_cast<int>(m_bias.size()), res.begin() + m_filterData.size());
+                return res;
+            }
         }
 
         virtual void SetParameters(const std::vector<Scalar>& param) override

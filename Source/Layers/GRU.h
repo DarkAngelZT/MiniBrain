@@ -1,4 +1,5 @@
 #pragma once
+#include <autodiff/reverse/var/eigen.hpp>
 #include "../Layer.h"
 #include "../Optimizer.h"
 
@@ -38,7 +39,7 @@ namespace MiniBrain
         {
             if constexpr (std::is_same_v<T, AutoDiffVar>) 
             {
-                using autodiff::exp;
+                using autodiff::reverse::detail::exp;
                 return InData.unaryExpr([](const AutoDiffVar& x) { return 1.0f / (1.0f + exp(-x)); });
             }
             else    
@@ -63,7 +64,7 @@ namespace MiniBrain
         }
 
     public:
-        GRU (int inSize, int hiddenSize):Layer(inSize,hiddenSize),m_hiddenSize(hiddenSize)
+        GRU (int inSize, int hiddenSize):Layer<T>(inSize,hiddenSize),m_hiddenSize(hiddenSize)
         {
             m_BatchSize = 1;
             Init();
@@ -81,7 +82,7 @@ namespace MiniBrain
             Matrix<T> m_h_tilde;
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                using autodiff::tanh;
+                using autodiff::reverse::detail::tanh;
 
                 Matrix<T> h_prev_T = m_h_prev.template cast<T>();
                 m_z = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
@@ -127,7 +128,7 @@ namespace MiniBrain
                     m_weight_r.size() + m_Ur.size() + m_bias_r.size() +
                     m_weight_h.size() + m_Uh.size() + m_bias_h.size();
 
-                VectorX<AutoDiffVar> params(total_params);
+                Vector<AutoDiffVar> params(total_params);
                 // 按严格的固有内存顺序，把 9 个矩阵的大乱炖“全量展平拼接”
                 int offset = 0;
                 auto pack = [&](const auto& matrix) {
@@ -139,7 +140,7 @@ namespace MiniBrain
                 pack(m_weight_r); pack(m_Ur); pack(m_bias_r);
                 pack(m_weight_h); pack(m_Uh); pack(m_bias_h);
 
-                VectorX<AutoDiffVar> gradients = autodiff::gradient(Loss, params);
+                Vector<AutoDiffVar> gradients = autodiff::gradient(Loss, params);
                 // 按照同样的顺序，把梯度“全量展平拼接”回 9 个矩阵
                 offset = 0;
                 auto unpack = [&](Matrix<Scalar>& gradDest, const Matrix<Scalar>& matrix) {
@@ -179,29 +180,29 @@ namespace MiniBrain
 
         virtual void Init() override
         {
-            m_weight_z.resize(m_inSize,m_hiddenSize);
-            m_weight_r.resize(m_inSize,m_hiddenSize);
-            m_weight_h.resize(m_inSize,m_hiddenSize);
-            m_Uz.resize(m_hiddenSize,m_hiddenSize);
-            m_Ur.resize(m_hiddenSize,m_hiddenSize);
-            m_Uh.resize(m_hiddenSize,m_hiddenSize);
-            m_bias_z.resize(m_hiddenSize);
-            m_bias_r.resize(m_hiddenSize);
-            m_bias_h.resize(m_hiddenSize);
+            m_weight_z.resize(this->m_inSize,this->m_hiddenSize);
+            m_weight_r.resize(this->m_inSize,this->m_hiddenSize);
+            m_weight_h.resize(this->m_inSize,this->m_hiddenSize);
+            m_Uz.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_Ur.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_Uh.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_bias_z.resize(this->m_hiddenSize);
+            m_bias_r.resize(this->m_hiddenSize);
+            m_bias_h.resize(this->m_hiddenSize);
 
-            m_h_prev.resize(m_hiddenSize,1);
-            // m_h_tilde.resize(m_hiddenSize,1);
-            // m_h.resize(m_hiddenSize,1);
+            m_h_prev.resize(this->m_hiddenSize,1);
+            // m_h_tilde.resize(this->m_hiddenSize,1);
+            // m_h.resize(this->m_hiddenSize,1);
 
-            m_dWz.resize(m_inSize,m_hiddenSize);
-            m_dWr.resize(m_inSize,m_hiddenSize);
-            m_dWh.resize(m_inSize,m_hiddenSize);
-            m_dUz.resize(m_hiddenSize,m_hiddenSize);
-            m_dUr.resize(m_hiddenSize,m_hiddenSize);
-            m_dUh.resize(m_hiddenSize,m_hiddenSize);
-            m_dbz.resize(m_hiddenSize);
-            m_dbr.resize(m_hiddenSize);
-            m_dbh.resize(m_hiddenSize);
+            m_dWz.resize(this->m_inSize,this->m_hiddenSize);
+            m_dWr.resize(this->m_inSize,this->m_hiddenSize);
+            m_dWh.resize(this->m_inSize,this->m_hiddenSize);
+            m_dUz.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_dUr.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_dUh.resize(this->m_hiddenSize,this->m_hiddenSize);
+            m_dbz.resize(this->m_hiddenSize);
+            m_dbr.resize(this->m_hiddenSize);
+            m_dbh.resize(this->m_hiddenSize);
         }
 
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
@@ -236,11 +237,11 @@ namespace MiniBrain
             m_BatchSize = Size;
             //隐状态数据比较特殊，不能随意改变batch大小，否则会导致数据丢失
             // m_h.resize(m_hiddenSize, Size);
-            m_h_prev.resize(m_hiddenSize, Size);
-            // m_h_tilde.resize(m_hiddenSize, Size);
+            m_h_prev.resize(this->m_hiddenSize, Size);
+            // m_h_tilde.resize(this->m_hiddenSize, Size);
 
-            m_z.resize(m_hiddenSize,Size);
-            m_r.resize(m_hiddenSize,Size);
+            m_z.resize(this->m_hiddenSize,Size);
+            m_r.resize(this->m_hiddenSize,Size);
         }
 
         void ResetMemory()

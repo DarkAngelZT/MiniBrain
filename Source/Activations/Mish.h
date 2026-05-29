@@ -18,9 +18,9 @@ namespace MiniBrain
         // softplus(x) = log(1 + exp(x))
         virtual void Forward(const Matrix<T>& InData) override
         {
-            using autodiff::exp;
-            using autodiff::log;
-            using autodiff::tanh;
+            using autodiff::reverse::detail::exp;
+            using autodiff::reverse::detail::log;
+            using autodiff::reverse::detail::tanh;
             // h(x) = tanh(softplus(x)) = (1 + exp(x))^2 - 1
             //                            ------------------
             //                            (1 + exp(x))^2 + 1
