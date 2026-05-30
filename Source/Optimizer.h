@@ -31,9 +31,9 @@ namespace MiniBrain
         {
             Matrix<Scalar> dW(Indw.rows(), Indw.cols());
             Matrix<Scalar> w(Weight.rows(), Weight.cols());
-            dW = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+            // dW = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
             w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
-            ConstAlignedMapVec<Scalar> dvec(dW.data(), dW.size());
+            ConstAlignedMapVec<Scalar> dvec(Indw.data(), Indw.size());
             AlignedMapVec<Scalar> vec(w.data(), w.size());
             Update(dvec, vec);
             // Update the original weight matrix with the new values
@@ -44,9 +44,9 @@ namespace MiniBrain
         {
             Vector<Scalar> dw(Indw.size());
             Vector<Scalar> w(Weight.size());
-            dw = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
+            // dw = Indw.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
             w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
-            ConstAlignedMapVec<Scalar> dvec(dw.data(), dw.size());
+            ConstAlignedMapVec<Scalar> dvec(Indw.data(), Indw.size());
             AlignedMapVec<Scalar> vec(w.data(), w.size());
             Update(dvec, vec);
             // Update the original weight vector with the new values
