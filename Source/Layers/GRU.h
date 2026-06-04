@@ -264,11 +264,16 @@ namespace MiniBrain
             m_r.resize(this->m_hiddenSize,Size);
         }
 
-        void ResetMemory()
+        void ResetAllMemory()
         {
             // m_h.setZero();
             m_h_prev.setZero();
             // m_h_tilde.setZero();
+        }
+
+        void ResetMemory(int index)
+        {
+           m_h_prev.col(index).setZero();
         }
 
         virtual std::vector<Scalar> GetParameters() const override
