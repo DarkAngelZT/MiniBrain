@@ -13,26 +13,30 @@ namespace MiniBrain
     {
         int m_seqLen;
         int m_featureCount;
+        int m_outputFeatureCount;
+        int m_keyDim;
         // 权重矩阵
         Matrix<T> Wq, Wk, Wv;
         Matrix<Scalar> dWq, dWk, dWv;
     public:
-        Attention(int inputSize, int outputSize, int featureCount):Layer<T>(inputSize, outputSize)
+        Attention(int inputSize, int outputSize, int featureCount, int keyDim):Layer<T>(inputSize, outputSize)
         {
             m_seqLen = inputSize / featureCount;
             m_featureCount = featureCount;
+            m_outputFeatureCount = outputSize / featureCount;
+            m_keyDim = keyDim;
             Init();
         }
         
         virtual void Init() override
         {
-            Wq.resize(m_featureCount, this->m_inSize);
-            Wk.resize(m_featureCount, this->m_inSize);
-            Wv.resize(this->m_outSize,this->m_inSize);
+            Wq.resize(m_keyDim, m_featureCount);
+            Wk.resize(m_keyDim, m_featureCount);
+            Wv.resize(m_outputFeatureCount, m_featureCount);
 
-            dWk.resize(m_featureCount, this->m_inSize);
-            dWq.resize(m_featureCount,this->m_inSize);
-            dWv.resize(this->m_outSize, this->m_inSize);
+            dWk.resize(m_keyDim, m_featureCount);
+            dWq.resize(m_keyDim, m_featureCount);
+            dWv.resize(m_outputFeatureCount, m_featureCount);
         }
 
         virtual void Init(const Scalar& mu, const Scalar& sigma, Random& RNG) override
@@ -64,7 +68,6 @@ namespace MiniBrain
                     }
 
                     // 2. 线性投影得到 Q, K, V 矩阵
-                    // Q, K, V 的形状均为 [m_outputSize, m_seqLen]
                     Matrix<T> Q = Wq * X_obs;
                     Matrix<T> K = Wk * X_obs;
                     Matrix<T> V = Wv * X_obs;
@@ -85,29 +88,29 @@ namespace MiniBrain
                     }
                     // 此时 Score 变为了 Attention Weights (A)
 
-                    // 5. 加权聚合：Context = V * A^T, 形状为 [m_outputSize, m_seqLen]
+                    // 5. 加权聚合：Context = V * A^T, 形状为 [m_outputFeatureCount, m_seqLen]
                     // 注意：原标准公式是 A * V，但因为我们这里维度排布习惯，
                     // V 是 [d_v, SeqLen]，A 是 [SeqLen, SeqLen]，所以是 V * A.transpose()
                     Matrix<T> Context = V * Score.transpose();
 
                     // 6. 将当前样本的结果拼装回到输出矩阵 output 对应的列中
                     for (int s = 0; s < m_seqLen; ++s) {
-                        output.block(s * this->m_outputSize, o, this->m_outputSize, 1) = Context.col(s);
+                        output.block(s * m_outputFeatureCount, o, m_outputFeatureCount, 1) = Context.col(s);
                     }
                 }
             }
             else
             {
-                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_outputSize));
+                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_outputFeatureCount));
 
                 for (int b = 0; b < batchSize; ++b)
                 {
                     // 拆包
                     Eigen::Map<const Matrix<T>> x(InData.col(b).data(), m_featureCount, m_seqLen);
                     // Q K V
-                    Matrix<T> q = Wq * x;      // [d_k, seq_len]
-                    Matrix<T> k = Wk * x;      // [d_k, seq_len]
-                    Matrix<T> v = Wv * x;      // [output_size, seq_len]
+                    Matrix<T> q = Wq * x;      // [keyDim, seq_len]
+                    Matrix<T> k = Wk * x;      // [keyDim, seq_len]
+                    Matrix<T> v = Wv * x;      // [valueDim, seq_len]
 
                     // Attention Score
                     Matrix<T> score =  q.transpose() * k;
@@ -125,7 +128,7 @@ namespace MiniBrain
                     Matrix<T> y = v * score.transpose();
 
                     // 重新拼包
-                    Eigen::Map<Vector<T>>(output.col(b).data(),this->m_outputSize * m_seqLen) = Eigen::Map<Vector<T>>(y.data(), this->m_outputSize * m_seqLen);
+                    Eigen::Map<Vector<T>>(output.col(b).data(),m_outputFeatureCount * m_seqLen) = Eigen::Map<Vector<T>>(y.data(), m_outputFeatureCount * m_seqLen);
                 }}
 
 
