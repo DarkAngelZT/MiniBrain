@@ -174,7 +174,7 @@ namespace MiniBrain
 
             for (int i = 0; i < nLayer; i++)
             {
-                if (m_layers[i]->GetType()=="Layer")
+                if (m_layers[i]->GetType()=="Layer" and m_layers[i]->HasParameters())
                 {
                     result.push_back(dynamic_cast<Layer<T>*>(m_layers[i])->GetParameters());
                 }               
@@ -193,7 +193,7 @@ namespace MiniBrain
             
             for (int i = 0; i < nLayer; i++)
             {
-                if (m_layers[i]->GetType()=="Layer")
+                if (m_layers[i]->GetType()=="Layer" && m_layers[i]->HasParameters())
                 {
                     dynamic_cast<Layer<T>*>(m_layers[i])->SetParameters(params[i]);
                 }                

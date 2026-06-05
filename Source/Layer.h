@@ -33,6 +33,8 @@ namespace MiniBrain {
 
         virtual void SetParameters(const std::vector<Scalar>& param) {};
 
+        virtual bool HasParameters() const { return true; }
+
         virtual std::string GetType()const override {return "Layer";}        
     };
     
