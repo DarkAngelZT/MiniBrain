@@ -12,8 +12,8 @@ namespace MiniBrain
     class Network
     {
     protected:
-        std::vector<IComputeNode<T> *> m_layers;
-        LossFunc *m_lossFunc=nullptr;
+        std::vector<std::unique_ptr<IComputeNode<T>>> m_layers;
+        std::unique_ptr<LossFunc> m_lossFunc=nullptr;
         Random m_defaultRNG;
         Random& m_rng;
 
@@ -118,14 +118,8 @@ namespace MiniBrain
         {}
         ~Network() 
         {
-            for (int i = 0; i < GetLayerAmount(); i++)
-            {
-                delete m_layers[i];
-            }
-            if(m_lossFunc)
-            {
-                delete m_lossFunc;
-            }
+            m_layers.clear();
+            m_lossFunc.reset();
         }
 
         virtual void Init(const Scalar& mu=0.f, const Scalar& sigma=1.f)
@@ -146,14 +140,14 @@ namespace MiniBrain
             
         }
 
-        void AddLayer(IComputeNode<T> *layer)
+        void AddLayer(std::unique_ptr<IComputeNode<T>> layer)
         {
-            m_layers.push_back(layer);
+            m_layers.push_back(std::move(layer));
         }
 
-        void SetLossFunc(LossFunc *lossFunc)
+        void SetLossFunc(std::unique_ptr<LossFunc> lossFunc)
         {
-            m_lossFunc = lossFunc;
+            m_lossFunc = std::move(lossFunc);
         }
 
         int GetLayerAmount() const
@@ -161,7 +155,7 @@ namespace MiniBrain
             return m_layers.size();
         }
 
-        const LossFunc* GetLossFunc() const
+        const std::weak_ptr<LossFunc> GetLossFunc() const
         {
             return m_lossFunc;
         }
