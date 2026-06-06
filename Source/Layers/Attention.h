@@ -23,7 +23,7 @@ namespace MiniBrain
         {
             m_seqLen = inputSize / featureCount;
             m_featureCount = featureCount;
-            m_outputFeatureCount = outputSize / featureCount;
+            m_outputFeatureCount = outputSize / m_seqLen;
             m_keyDim = keyDim;
             Init();
         }
