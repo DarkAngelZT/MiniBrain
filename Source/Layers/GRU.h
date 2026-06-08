@@ -283,17 +283,17 @@ namespace MiniBrain
             m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
             std::vector<Scalar> params(size);
             
-            const Matrix<T>* z;
-            const Matrix<T>* r;
-            const Matrix<T>* h;
+            const Matrix<Scalar>* z;
+            const Matrix<Scalar>* r;
+            const Matrix<Scalar>* h;
 
-            const Vector<T>* bias_z;
-            const Vector<T>* bias_r;
-            const Vector<T>* bias_h;
+            const Vector<Scalar>* bias_z;
+            const Vector<Scalar>* bias_r;
+            const Vector<Scalar>* bias_h;
 
-            const Matrix<T>* Uz;
-            const Matrix<T>* Ur;
-            const Matrix<T>* Uh;
+            const Matrix<Scalar>* Uz;
+            const Matrix<Scalar>* Ur;
+            const Matrix<Scalar>* Uh;
 
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
