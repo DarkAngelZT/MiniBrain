@@ -41,7 +41,7 @@ namespace MiniBrain
                 {
                     return true;
                 }
-                if (static_cast<Layer<T>*>(m_layers[i])->GetInSize() != static_cast<Layer<T>*>(m_layers[j])->GetOutSize())
+                if (static_cast<Layer<T>*>(m_layers[i].get())->GetInSize() != static_cast<Layer<T>*>(m_layers[j].get())->GetOutSize())
                 {
                     return false;
                 }                                
@@ -58,7 +58,7 @@ namespace MiniBrain
                 return Matrix<T>();
             }
             
-            if(InData.rows() != static_cast<Layer<T>*>(m_layers[0])->GetInSize())
+            if(InData.rows() != static_cast<Layer<T>*>(m_layers[0].get())->GetInSize())
             {
                 throw std::invalid_argument("[Network]: Input data dimension mismatch");
             }
@@ -83,8 +83,8 @@ namespace MiniBrain
                     return;
                 }
                 
-                IComputeNode<T>* FirstLayer = m_layers[0];
-                IComputeNode<T>* LastLayer = m_layers[nLayer-1];
+                IComputeNode<T>* FirstLayer = m_layers[0].get();
+                IComputeNode<T>* LastLayer = m_layers[nLayer-1].get();
 
                 AutoDiffVar loss = m_lossFunc->Evaluate(Output, Target);
 
@@ -107,7 +107,7 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType() == "Layer")
                 {
-                    dynamic_cast<Layer<T>*>(m_layers[i])->Update(opt);
+                    dynamic_cast<Layer<T>*>(m_layers[i].get())->Update(opt);
                 }                
             } 
         }
@@ -134,7 +134,7 @@ namespace MiniBrain
             {
                 if (m_layers[i]->GetType()=="Layer")
                 {
-                    dynamic_cast<Layer<T>*>(m_layers[i])->Init(mu,sigma,m_rng);
+                    dynamic_cast<Layer<T>*>(m_layers[i].get())->Init(mu,sigma,m_rng);
                 }                
             }
             
@@ -155,9 +155,9 @@ namespace MiniBrain
             return m_layers.size();
         }
 
-        const std::weak_ptr<LossFunc> GetLossFunc() const
+        const LossFunc* GetLossFunc() const
         {
-            return m_lossFunc;
+            return m_lossFunc.get();
         }
 
         virtual std::vector<std::vector<Scalar>> GetParameters()const
@@ -168,9 +168,13 @@ namespace MiniBrain
 
             for (int i = 0; i < nLayer; i++)
             {
-                if (m_layers[i]->GetType()=="Layer" and m_layers[i]->HasParameters())
+                if (m_layers[i]->GetType()=="Layer")
                 {
-                    result.push_back(dynamic_cast<Layer<T>*>(m_layers[i])->GetParameters());
+                    auto LayerPtr = dynamic_cast<Layer<T>*>(m_layers[i].get());
+                    if (LayerPtr and LayerPtr->HasParameters())
+                    {
+                        result.push_back(LayerPtr->GetParameters());
+                    }
                 }               
             }            
 
@@ -187,9 +191,13 @@ namespace MiniBrain
             
             for (int i = 0; i < nLayer; i++)
             {
-                if (m_layers[i]->GetType()=="Layer" && m_layers[i]->HasParameters())
+                if (m_layers[i]->GetType()=="Layer")
                 {
-                    dynamic_cast<Layer<T>*>(m_layers[i])->SetParameters(params[i]);
+                    auto LayerPtr = dynamic_cast<Layer<T>*>(m_layers[i].get());
+                    if (LayerPtr and LayerPtr->HasParameters())
+                    {
+                        LayerPtr->SetParameters(params[i]);
+                    }
                 }                
             }
             
