@@ -16,18 +16,18 @@ int main(int argc, char const *argv[])
 
     Activation<AutoDiffVar>* a1 = new ReLU<AutoDiffVar>();
     
-    nn.AddLayer(layer1);
-    nn.AddLayer(a1);
+    nn.AddLayer(std::unique_ptr<Layer<AutoDiffVar>>(layer1));
+    nn.AddLayer(std::unique_ptr<Activation<AutoDiffVar>>(a1));
     // nn.AddLayer(layer4);
     // nn.AddLayer(layer3);
-    nn.AddLayer(layer2);
+    nn.AddLayer(std::unique_ptr<Layer<AutoDiffVar>>(layer2));
 
     // Layer* layer7 = new Convolutional(10,10,1,2,3,3);
     // Layer* layer8 = new FullyConnected(8*8*2,2);
     // nn2.AddLayer(layer7);
     // nn2.AddLayer(layer8);
 
-    nn.SetLossFunc(new RegressionMSE());
+    nn.SetLossFunc(std::make_unique<RegressionMSE>());
 
     Adam opt;
 
@@ -87,7 +87,7 @@ int main(int argc, char const *argv[])
     Matrix<AutoDiffVar> output = nn.Forward(x);
     std::cout<<y<<std::endl;
     // // layer3->SetBatchSize(1);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 600; i++)
     {
         Matrix<AutoDiffVar> roundOut = nn.Forward(x);
         nn.Backward(roundOut, y);
