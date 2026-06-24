@@ -16,6 +16,7 @@ namespace MiniBrain
 
         virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
+            using autodiff::reverse::detail::tanh;
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 return InData.unaryExpr([](const AutoDiffVar& x){ return tanh(x); });
