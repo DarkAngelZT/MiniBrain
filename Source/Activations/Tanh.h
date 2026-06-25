@@ -19,7 +19,7 @@ namespace MiniBrain
             using autodiff::reverse::detail::tanh;
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                return InData.unaryExpr([](const AutoDiffVar& x){ return tanh(x); });
+                return InData.unaryExpr([](const AutoDiffVar& x) -> AutoDiffVar { return tanh(x); });
             }
             else
             {

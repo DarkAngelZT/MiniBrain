@@ -121,7 +121,7 @@ namespace MiniBrain
         {
             if (static_cast<int>(param.size())!=m_weight.size()+m_bias.size())
             {
-                MINIBRAIN_THROW(throw std::invalid_argument("FullyConnected: parameter size mismatch"));
+                MINIBRAIN_THROW(std::invalid_argument("FullyConnected: parameter size mismatch"));
             }
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {

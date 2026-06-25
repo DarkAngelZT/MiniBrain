@@ -235,7 +235,7 @@ namespace MiniBrain
             // 1. 严格尺寸校验
             if (static_cast<int>(param.size()) != totalSize)
             {
-                MINIBRAIN_THROW(throw std::invalid_argument("AttentionLayer: parameter size mismatch"));
+                MINIBRAIN_THROW(std::invalid_argument("AttentionLayer: parameter size mismatch"));
             }
 
             if constexpr (std::is_same_v<T, AutoDiffVar>)

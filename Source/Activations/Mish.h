@@ -16,7 +16,7 @@ namespace MiniBrain
 
         // Mish(x) = x * tanh(softplus(x))
         // softplus(x) = log(1 + exp(x))
-        virtual void Forward(const Matrix<T>& InData) override
+        virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             using autodiff::reverse::detail::exp;
             using autodiff::reverse::detail::log;
@@ -30,7 +30,7 @@ namespace MiniBrain
             constexpr float threshold = std::is_same_v<Scalar, float> ? 20.0f : 37.0f;
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                return InData.unaryExpr([](const AutoDiffVar& x){
+                return InData.unaryExpr([](const AutoDiffVar& x) -> AutoDiffVar {
                     if (x.expr->val > threshold) 
                     {
                         // 当 x 很大时，log(1 + exp(x)) 已经无限逼近于 x 本身

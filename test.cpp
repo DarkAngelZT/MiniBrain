@@ -9,9 +9,9 @@ int main(int argc, char const *argv[])
     Network<AutoDiffVar> nn,nn2;
     Layer<AutoDiffVar>* layer1 = new FullyConnected<AutoDiffVar>(1,6);
     Layer<AutoDiffVar>* layer2 = new FullyConnected<AutoDiffVar>(6,1);
-    // GRU* layer3 = new GRU(1,6);
+    GRU<AutoDiffVar>* layer3 = new GRU<AutoDiffVar>(1,6);//编译测试
     // Layer* layer4 = new FullyConnected(12,12);
-    // Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);
+    Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);//强制编译测试
     // Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
 
     Activation<AutoDiffVar>* a1 = new ReLU<AutoDiffVar>();
@@ -28,6 +28,12 @@ int main(int argc, char const *argv[])
     // nn2.AddLayer(layer8);
 
     nn.SetLossFunc(std::make_unique<RegressionMSE>());
+    auto crossEntropy = std::make_unique<CrossEntropy_Multi>(); //编译测试
+
+    Activation<AutoDiffVar> *mish = new Mish<AutoDiffVar>(); //编译测试
+    Activation<AutoDiffVar> *sigmoid = new Sigmoid<AutoDiffVar>(); //编译测试
+    Activation<AutoDiffVar> *softmax = new SoftMax<AutoDiffVar>(); //编译测试
+    Activation<AutoDiffVar> *tanh = new Tanh<AutoDiffVar>(); //编译测试
 
     Adam opt;
 

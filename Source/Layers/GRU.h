@@ -366,7 +366,7 @@ namespace MiniBrain
             m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
             if (static_cast<int>(param.size())!=size)
             {
-                MINIBRAIN_THROW(throw std::invalid_argument("GRU: parameter size mismatch"));
+                MINIBRAIN_THROW(std::invalid_argument("GRU: parameter size mismatch"));
             }
             int offset = 0;
             DeserializeParameter(param,m_weight_z,offset);
