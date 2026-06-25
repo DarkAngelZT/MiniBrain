@@ -25,7 +25,7 @@ namespace MiniBrain
         /// \param vec  On entering, the current parameter vector. On exit, the
         ///             updated parameters.
         ///
-        virtual void Update(ConstAlignedMapVec<T>& dvec, AlignedMapVec<T>& vec) = 0;
+        virtual void Update(ConstAlignedMapVec<T>& dvec, AlignedMapVec<T>& vec, const void* originalVecPtr) = 0;
 
         void Update(const Matrix<T>& Indw, Matrix<AutoDiffVar>& Weight)
         {
@@ -35,7 +35,7 @@ namespace MiniBrain
             w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
             ConstAlignedMapVec<Scalar> dvec(Indw.data(), Indw.size());
             AlignedMapVec<Scalar> vec(w.data(), w.size());
-            Update(dvec, vec);
+            Update(dvec, vec, static_cast<const void*>(Weight.data()));
             // Update the original weight matrix with the new values
             Weight = w.cast<AutoDiffVar>();
         }
@@ -48,7 +48,7 @@ namespace MiniBrain
             w = Weight.unaryExpr([](const AutoDiffVar& x){ return x.expr->val; });
             ConstAlignedMapVec<Scalar> dvec(Indw.data(), Indw.size());
             AlignedMapVec<Scalar> vec(w.data(), w.size());
-            Update(dvec, vec);
+            Update(dvec, vec, static_cast<const void*>(Weight.data()));
             // Update the original weight vector with the new values
             Weight = w.cast<AutoDiffVar>();
         }
