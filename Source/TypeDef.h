@@ -1,6 +1,14 @@
 #pragma once
+#include <cassert>
+#include <exception>
 #include "Eigen/Dense"
 #include "autodiff/reverse/var/var.hpp"
+
+#if defined(_CPPUNWIND) || defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+#  define MINIBRAIN_THROW(EX) throw EX
+#else
+#  define MINIBRAIN_THROW(EX) do { assert(false && "Exception disabled: " #EX); std::terminate(); } while(false)
+#endif
 
 namespace MiniBrain
 {

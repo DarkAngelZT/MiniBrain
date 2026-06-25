@@ -18,7 +18,7 @@ namespace MiniBrain
             const int nvar = Result.rows();
             if (Target.cols() != nobs || Target.rows() != nvar)
             {
-                throw std::invalid_argument("RegressionMSE: target data dimension mismatch");
+                MINIBRAIN_THROW(std::invalid_argument("RegressionMSE: target data dimension mismatch"));
             }
             Matrix<AutoDiffVar> m_din(nvar, nobs);
             m_din = Result - Target;

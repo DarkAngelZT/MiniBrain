@@ -60,7 +60,7 @@ namespace MiniBrain
             
             if(InData.rows() != static_cast<Layer<T>*>(m_layers[0].get())->GetInSize())
             {
-                throw std::invalid_argument("[Network]: Input data dimension mismatch");
+                MINIBRAIN_THROW(std::invalid_argument("[Network]: Input data dimension mismatch"));
             }
 
             Matrix<T> output = m_layers[0]->Forward(InData);
@@ -137,7 +137,7 @@ namespace MiniBrain
         {
             if(!CheckUnitSize())
             {
-                throw std::invalid_argument("[Network]Layer size mismatch");
+                MINIBRAIN_THROW(std::invalid_argument("[Network]Layer size mismatch"));
             }
             const int nLayers = GetLayerAmount();
             
@@ -197,7 +197,7 @@ namespace MiniBrain
             const int nLayer = GetLayerAmount();
             if (static_cast<int>(params.size())!=nLayer)
             {
-                std::invalid_argument("[network]:parameter size mismatch");
+                MINIBRAIN_THROW(std::invalid_argument("[Network]: parameter size mismatch"));
             }
             
             for (int i = 0; i < nLayer; i++)

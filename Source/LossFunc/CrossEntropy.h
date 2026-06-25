@@ -20,7 +20,7 @@ namespace MiniBrain
             Scalar batch_size = static_cast<float>(nobs);
             if (Target.cols() != nobs || Target.rows() != nvar)
             {
-                throw std::invalid_argument("CrossEntropy_Multi: target data dimension mismatch");
+                MINIBRAIN_THROW(std::invalid_argument("CrossEntropy_Multi: target data dimension mismatch"));
             }
             // Compute the derivative of the input of this layer
             // L = -sum(log(phat) * y)
