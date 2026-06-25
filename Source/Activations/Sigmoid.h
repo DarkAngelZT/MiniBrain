@@ -19,7 +19,7 @@ namespace MiniBrain
         {
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                return InData.unaryExpr([](const AutoDiffVar& x){ return 1.0f / (1.0f + autodiff::reverse::detail::exp(-x)); });
+                return InData.unaryExpr([](const AutoDiffVar& x) -> AutoDiffVar { return 1.0f / (1.0f + autodiff::reverse::detail::exp(-x)); });
             }
             else
             {

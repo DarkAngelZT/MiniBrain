@@ -11,6 +11,7 @@ namespace MiniBrain
     template<typename T>
     class Attention : public Layer<T>
     {
+    protected:
         int m_seqLen;
         int m_featureCount;
         int m_outputFeatureCount;
@@ -50,12 +51,12 @@ namespace MiniBrain
         virtual Matrix<T> Forward(const Matrix<T>& InData) override
         {
             Matrix<T> output;
-            const int batchSize  = InData.cols;
+            const int batchSize  = InData.cols();
             output.resize(this->m_outSize*m_seqLen, batchSize);
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 // 缩放因子：1 / sqrt(d_k)
-                T scale = 1.0 / std::sqrt(static_cast<Scalar>(this->m_outputSize));
+                T scale = 1.0 / std::sqrt(static_cast<Scalar>(this->m_featureCount));
 
                 // 按样本(Batch)进行分块处理，内部完全基于原生 Eigen 矩阵乘法
                 for (int o = 0; o < batchSize; ++o)
@@ -101,7 +102,7 @@ namespace MiniBrain
             }
             else
             {
-                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_outputFeatureCount));
+                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_featureCount));
 
                 for (int b = 0; b < batchSize; ++b)
                 {
@@ -165,17 +166,17 @@ namespace MiniBrain
                 // =================================================================
                 // 提取 Wq 的梯度
                 for (int i = 0; i < wqSize; ++i) {
-                    dWq[i] = all_grads[i];
+                    dWq.reshaped()[i] = all_grads[i];
                 }
                 
                 // 提取 Wk 的梯度
                 for (int i = 0; i < wkSize; ++i) {
-                    dWk[i] = all_grads[wqSize + i];
+                    dWk.reshaped()[i] = all_grads[wqSize + i];
                 }
 
                 // 提取 Wv 的梯度
                 for (int i = 0; i < wvSize; ++i) {
-                    dWv[i] = all_grads[wqSize + wkSize + i];
+                    dWv.reshaped()[i] = all_grads[wqSize + wkSize + i];
                 }
             }
         }
@@ -234,7 +235,7 @@ namespace MiniBrain
             // 1. 严格尺寸校验
             if (static_cast<int>(param.size()) != totalSize)
             {
-                throw std::invalid_argument("AttentionLayer: parameter size mismatch");
+                MINIBRAIN_THROW(throw std::invalid_argument("AttentionLayer: parameter size mismatch"));
             }
 
             if constexpr (std::is_same_v<T, AutoDiffVar>)

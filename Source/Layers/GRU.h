@@ -37,18 +37,10 @@ namespace MiniBrain
 
         Matrix<T> Sigmoid(const Matrix<T>& InData)
         {
-            if constexpr (std::is_same_v<T, AutoDiffVar>) 
-            {
-                using autodiff::reverse::detail::exp;
-                return InData.unaryExpr([](const AutoDiffVar& x) { return 1.0f / (1.0f + exp(-x)); });
-            }
-            else    
-            {
-                return 1.0f/(1.0f + (-InData.array()).exp());
-            }
+            return 1.0f/(1.0f + (-InData.array()).exp());
         }
 
-        static void SerializeParameter(const Matrix<T>& m, std::vector<Scalar>& params, int offset=0)
+        static void SerializeParameter(const Matrix<Scalar>& m, std::vector<Scalar>& params, int offset=0)
         {
             std::copy(m.data(),m.data()+static_cast<int>(m.size()),params.begin()+offset);
         }
@@ -105,15 +97,15 @@ namespace MiniBrain
                 using autodiff::reverse::detail::tanh;
 
                 Matrix<T> h_prev_T = m_h_prev.template cast<T>();
-                m_z = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev).colwise()+m_bias_z);
-                m_r = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev).colwise()+m_bias_r);
+                m_z = Sigmoid((m_weight_z.transpose() * InData + m_Uz.transpose() * m_h_prev.cast<MiniBrain::AutoDiffVar>()).colwise()+m_bias_z);
+                m_r = Sigmoid((m_weight_r.transpose() * InData + m_Ur.transpose() * m_h_prev.cast<MiniBrain::AutoDiffVar>()).colwise()+m_bias_r);
                 
                 Matrix<T> r_h(m_hiddenSize, nobs);
                 for(int j = 0; j < nobs; ++j) {
                     r_h.col(j) = m_r.col(j).array() * h_prev_T.col(j).array();
                 }
                 Matrix<T> h_lin = (m_weight_h.transpose() * InData + m_Uh.transpose() * r_h).colwise() + m_bias_h;
-                m_h_tilde = h_lin.unaryExpr([](const AutoDiffVar& x) { return tanh(x); });
+                m_h_tilde = h_lin.unaryExpr([](const AutoDiffVar& x) -> AutoDiffVar { return tanh(x); });
                 
                 m_h.resize(m_hiddenSize, nobs);
                 for(int j = 0; j < nobs; ++j) {
@@ -160,10 +152,10 @@ namespace MiniBrain
                 pack(m_weight_r); pack(m_Ur); pack(m_bias_r);
                 pack(m_weight_h); pack(m_Uh); pack(m_bias_h);
 
-                Vector<AutoDiffVar> gradients = autodiff::gradient(Loss, params);
+                Vector<Scalar> gradients = autodiff::gradient(Loss, params);
                 // 按照同样的顺序，把梯度“全量展平拼接”回 9 个矩阵
                 offset = 0;
-                auto unpack = [&](Matrix<Scalar>& gradDest, const Matrix<Scalar>& matrix) {
+                auto unpack = [&](auto& gradDest, const auto& matrix) {
                     gradDest = gradients.segment(offset, matrix.size()).reshaped(matrix.rows(), matrix.cols());
                     offset += matrix.size();
                 };
@@ -295,17 +287,39 @@ namespace MiniBrain
             const Matrix<Scalar>* Ur;
             const Matrix<Scalar>* Uh;
 
+            Matrix<Scalar> z_cache;
+            Matrix<Scalar> r_cache;
+            Matrix<Scalar> h_cache;
+
+            Vector<Scalar> bias_z_cache;
+            Vector<Scalar> bias_r_cache;
+            Vector<Scalar> bias_h_cache;
+
+            Matrix<Scalar> Uz_cache;
+            Matrix<Scalar> Ur_cache;
+            Matrix<Scalar> Uh_cache;
+
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
-                z = &m_weight_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                r = &m_weight_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                h = &m_weight_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                bias_z = &m_bias_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                bias_r = &m_bias_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                bias_h = &m_bias_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                Uz = &m_Uz.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                Ur = &m_Ur.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
-                Uh = &m_Uh.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                z_cache = m_weight_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                r_cache = m_weight_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                h_cache = m_weight_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_z_cache = m_bias_z.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_r_cache = m_bias_r.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                bias_h_cache = m_bias_h.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Uz_cache = m_Uz.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Ur_cache = m_Ur.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+                Uh_cache = m_Uh.unaryExpr([](const AutoDiffVar& x) { return static_cast<Scalar>(x.expr->val); });
+
+                z = &z_cache;
+                r = &r_cache;
+                h = &h_cache;
+                bias_z = &bias_z_cache;
+                bias_r = &bias_r_cache;
+                bias_h = &bias_h_cache;
+                Uz = &Uz_cache;
+                Ur = &Ur_cache;
+                Uh = &Uh_cache;
             }
             else
             {
@@ -352,7 +366,7 @@ namespace MiniBrain
             m_bias_z.size()+m_bias_r.size()+m_bias_h.size();
             if (static_cast<int>(param.size())!=size)
             {
-                throw std::invalid_argument("GRU: parameter size mismatch");
+                MINIBRAIN_THROW(throw std::invalid_argument("GRU: parameter size mismatch"));
             }
             int offset = 0;
             DeserializeParameter(param,m_weight_z,offset);
