@@ -82,11 +82,22 @@ namespace MiniBrain
                 {
                     return;
                 }
-                
-                IComputeNode<T>* FirstLayer = m_layers[0].get();
-                IComputeNode<T>* LastLayer = m_layers[nLayer-1].get();
 
                 AutoDiffVar loss = m_lossFunc->Evaluate(Output, Target);
+
+                Backward(loss);
+            }
+        }
+
+        virtual void Backward(AutoDiffVar& loss)
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int nLayer = GetLayerAmount();
+                if (nLayer <= 0)
+                {
+                    return;
+                }
 
                 for (int i = nLayer-1; i >=0; i--)
                 {
