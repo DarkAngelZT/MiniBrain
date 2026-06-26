@@ -56,7 +56,7 @@ namespace MiniBrain
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 // 缩放因子：1 / sqrt(d_k)
-                T scale = 1.0 / std::sqrt(static_cast<Scalar>(this->m_featureCount));
+                T scale = 1.0 / std::sqrt(static_cast<Scalar>(this->m_keyDim));
 
                 // 按样本(Batch)进行分块处理，内部完全基于原生 Eigen 矩阵乘法
                 for (int o = 0; o < batchSize; ++o)
@@ -102,7 +102,7 @@ namespace MiniBrain
             }
             else
             {
-                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_featureCount));
+                const Scalar scale =  1.0f / std::sqrt(static_cast<Scalar>(this->m_keyDim));
 
                 for (int b = 0; b < batchSize; ++b)
                 {
