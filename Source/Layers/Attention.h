@@ -52,7 +52,7 @@ namespace MiniBrain
         {
             Matrix<T> output;
             const int batchSize  = InData.cols();
-            output.resize(this->m_outSize*m_seqLen, batchSize);
+            output.resize(this->m_outSize, batchSize);
             if constexpr (std::is_same_v<T, AutoDiffVar>)
             {
                 // 缩放因子：1 / sqrt(d_k)

@@ -12,13 +12,13 @@ int main(int argc, char const *argv[])
     GRU<AutoDiffVar>* layer3 = new GRU<AutoDiffVar>(1,6);//编译测试
     // Layer* layer4 = new FullyConnected(12,12);
     Convolutional<AutoDiffVar>* layer5 = new Convolutional<AutoDiffVar>(10,10,1,2,3,3);//强制编译测试
-    // Layer<AutoDiffVar>* layer6 = new FullyConnected<AutoDiffVar>(8*8*2,2);
+    Layer<AutoDiffVar>* AttLayer = new Attention<AutoDiffVar>(6,6,2,6);
 
     Activation<AutoDiffVar>* a1 = new ReLU<AutoDiffVar>();
     
     nn.AddLayer(std::unique_ptr<Layer<AutoDiffVar>>(layer1));
     nn.AddLayer(std::unique_ptr<Activation<AutoDiffVar>>(a1));
-    // nn.AddLayer(layer4);
+    // nn.AddLayer(std::unique_ptr<Layer<AutoDiffVar>>(AttLayer));
     // nn.AddLayer(layer3);
     nn.AddLayer(std::unique_ptr<Layer<AutoDiffVar>>(layer2));
 
