@@ -191,6 +191,72 @@ namespace MiniBrain
             }
         }
 
+        virtual int GetAutoDiffParameterCount() const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+                return static_cast<int>(Wq.size() + Wk.size() + Wv.size());
+            return 0;
+        }
+
+        virtual void AppendAutoDiffParameters(
+            Vector<AutoDiffVar>& destination,
+            int& offset) const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int wq_size = static_cast<int>(Wq.size());
+                const int wk_size = static_cast<int>(Wk.size());
+                const int wv_size = static_cast<int>(Wv.size());
+                const int count = wq_size + wk_size + wv_size;
+                if(offset < 0 || offset + count > destination.size())
+                    MINIBRAIN_THROW(std::out_of_range("Attention: parameter destination is too small"));
+
+                // IMPORTANT PARAMETER ORDER
+                // -------------------------
+                // Attention serializes and updates its trainable matrices as
+                // Wq -> Wk -> Wv. The aggregated backward path uses exactly
+                // that order so a single gradient vector can later be split
+                // without evaluating any Attention derivative by hand.
+                  auto append_exact_nodes = [&](const auto& matrix)
+                  {
+                      // Assign ExprPtr rather than AutoDiffVar. Its copy
+                      // constructor wraps expressions, and a wrapper created
+                      // only for this list is not the parameter node reached by
+                      // Forward, which would produce a zero gradient.
+                      for(int i = 0; i < matrix.size(); ++i)
+                          destination(offset++).expr = matrix.data()[i].expr;
+                  };
+                  append_exact_nodes(Wq);
+                  append_exact_nodes(Wk);
+                  append_exact_nodes(Wv);
+            }
+        }
+
+        virtual void AssignGradients(
+            const Vector<Scalar>& gradients,
+            int& offset) override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int wq_size = static_cast<int>(Wq.size());
+                const int wk_size = static_cast<int>(Wk.size());
+                const int wv_size = static_cast<int>(Wv.size());
+                const int count = wq_size + wk_size + wv_size;
+                if(offset < 0 || offset + count > gradients.size())
+                    MINIBRAIN_THROW(std::out_of_range("Attention: gradient source is too small"));
+
+                // The slice order mirrors AppendAutoDiffParameters exactly.
+                // Eigen reshapes each column-major slice back to the original
+                // matrix dimensions expected by the optimizer.
+                dWq = gradients.segment(offset, wq_size).reshaped(Wq.rows(), Wq.cols());
+                offset += wq_size;
+                dWk = gradients.segment(offset, wk_size).reshaped(Wk.rows(), Wk.cols());
+                offset += wk_size;
+                dWv = gradients.segment(offset, wv_size).reshaped(Wv.rows(), Wv.cols());
+                offset += wv_size;
+            }
+        }
+
         virtual std::vector<Scalar> GetParameters() const override
         {
             const int wqSize = Wq.size();

@@ -36,9 +36,11 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
-#include <map>
 #include <memory>
+#include <queue>
 #include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 // autodiff includes
 #include <autodiff/common/meta.hpp>
@@ -206,16 +208,53 @@ struct ReversePropagationContext
         T adjoint;
     };
 
-    std::map<std::size_t, Pending, std::greater<std::size_t>> pending;
+    struct NewestNodeFirst
+    {
+        bool operator()(const Expr<T>* left, const Expr<T>* right) const
+        {
+            return left->node_id < right->node_id;
+        }
+    };
+
+    // A hash table performs the hot-path adjoint accumulation by node address.
+    // The heap only stores a node once and chooses the newest node next, which
+    // is the reverse topological order guaranteed by immutable expression
+    // edges pointing to nodes created earlier.
+    std::unordered_map<Expr<T>*, T> accumulated_adjoints;
+    std::priority_queue<
+        Expr<T>*,
+        std::vector<Expr<T>*>,
+        NewestNodeFirst> ready_nodes;
     Expr<T>* expanding = nullptr;
+
+    ReversePropagationContext()
+    {
+        // Avoid repeated small rehashes for ordinary layer graphs. The table
+        // still grows normally for larger Attention/GRU training graphs.
+        accumulated_adjoints.reserve(4096);
+    }
 
     void enqueue(Expr<T>* node, const T& adjoint)
     {
-        auto it = pending.find(node->node_id);
-        if(it == pending.end())
-            pending.emplace(node->node_id, Pending{node, adjoint});
+        auto [it, inserted] = accumulated_adjoints.emplace(node, adjoint);
+        if(inserted)
+            ready_nodes.push(node);
         else
-            it->second.adjoint += adjoint;
+            it->second += adjoint;
+    }
+
+    bool has_pending() const { return !ready_nodes.empty(); }
+
+    Pending pop_next()
+    {
+        Expr<T>* node = ready_nodes.top();
+        ready_nodes.pop();
+
+        auto current = accumulated_adjoints.find(node);
+        assert(current != accumulated_adjoints.end());
+        Pending result{node, current->second};
+        accumulated_adjoints.erase(current);
+        return result;
     }
 };
 
@@ -322,11 +361,9 @@ void propagate_shared_graph(const ExprPtr<T>& root, const T& seed)
 
     root->propagate(seed);
 
-    while(!context.pending.empty())
+    while(context.has_pending())
     {
-        auto current = context.pending.begin();
-        const auto pending = current->second;
-        context.pending.erase(current);
+        const auto pending = context.pop_next();
 
         context.expanding = pending.node;
         pending.node->propagate(pending.adjoint);

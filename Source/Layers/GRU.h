@@ -244,6 +244,92 @@ namespace MiniBrain
             }
         }
 
+        virtual int GetAutoDiffParameterCount() const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                return static_cast<int>(
+                    m_weight_z.size() + m_weight_r.size() + m_weight_h.size() +
+                    m_Uz.size() + m_Ur.size() + m_Uh.size() +
+                    m_bias_z.size() + m_bias_r.size() + m_bias_h.size());
+            }
+            return 0;
+        }
+
+        virtual void AppendAutoDiffParameters(
+            Vector<AutoDiffVar>& destination,
+            int& offset) const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int count = GetAutoDiffParameterCount();
+                if(offset < 0 || offset + count > destination.size())
+                    MINIBRAIN_THROW(std::out_of_range("GRU: parameter destination is too small"));
+
+                // IMPORTANT PARAMETER ORDER
+                // -------------------------
+                // Keep the checkpoint order used by GetParameters and
+                // SetParameters. All input projections come first, then all
+                // recurrent projections, then all biases:
+                //   Wz, Wr, Wh, Uz, Ur, Uh, bz, br, bh
+                // This function only aliases each AutoDiffVar expression into
+                // the aggregate vector. GRU derivatives are still generated
+                // automatically from the forward expression graph.
+                  auto append = [&](const auto& matrix)
+                  {
+                      // Alias the original expression nodes exactly. Copying
+                      // AutoDiffVar through an Eigen expression may construct
+                      // temporary dependent-variable wrappers; those wrappers
+                      // are absent from the forward graph and receive zero.
+                      for(int i = 0; i < matrix.size(); ++i)
+                          destination(offset++).expr = matrix.data()[i].expr;
+                  };
+
+                append(m_weight_z); append(m_weight_r); append(m_weight_h);
+                append(m_Uz);       append(m_Ur);       append(m_Uh);
+                append(m_bias_z);   append(m_bias_r);   append(m_bias_h);
+            }
+        }
+
+        virtual void AssignGradients(
+            const Vector<Scalar>& gradients,
+            int& offset) override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int count = GetAutoDiffParameterCount();
+                if(offset < 0 || offset + count > gradients.size())
+                    MINIBRAIN_THROW(std::out_of_range("GRU: gradient source is too small"));
+
+                // Split in the exact Wz,Wr,Wh,Uz,Ur,Uh,bz,br,bh order used
+                // above. Each matrix receives its original shape; this is only
+                // gradient routing and contains no hand-derived GRU backward.
+                auto assign_matrix = [&](auto& destination_gradient, const auto& parameter)
+                {
+                    const int size = static_cast<int>(parameter.size());
+                    destination_gradient = gradients.segment(offset, size).reshaped(
+                        parameter.rows(), parameter.cols());
+                    offset += size;
+                };
+                auto assign_vector = [&](auto& destination_gradient, const auto& parameter)
+                {
+                    const int size = static_cast<int>(parameter.size());
+                    destination_gradient = gradients.segment(offset, size);
+                    offset += size;
+                };
+
+                assign_matrix(m_dWz, m_weight_z);
+                assign_matrix(m_dWr, m_weight_r);
+                assign_matrix(m_dWh, m_weight_h);
+                assign_matrix(m_dUz, m_Uz);
+                assign_matrix(m_dUr, m_Ur);
+                assign_matrix(m_dUh, m_Uh);
+                assign_vector(m_dbz, m_bias_z);
+                assign_vector(m_dbr, m_bias_r);
+                assign_vector(m_dbh, m_bias_h);
+            }
+        }
+
         void SetBatchSize(int Size)
         {
             m_BatchSize = Size;

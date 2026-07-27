@@ -27,5 +27,6 @@
 #include "LossFunc/CrossEntropy.h"
 
 #include "Network.h"
+#include "AutodiffBackward.h"
 
 #include "Utils/IO.h"

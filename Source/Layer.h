@@ -29,6 +29,22 @@ namespace MiniBrain {
 
         virtual void Update(Optimizer<Scalar>& opt) = 0;
 
+        // Fast training path: a Network can collect every trainable variable,
+        // run autodiff::gradient() once for the whole loss graph, then send the
+        // resulting slices back to their owning layers. Parameter-free layers
+        // inherit these empty defaults.
+        virtual int GetAutoDiffParameterCount() const { return 0; }
+
+        virtual void AppendAutoDiffParameters(
+            Vector<AutoDiffVar>& /* destination */,
+            int& /* offset */) const
+        {}
+
+        virtual void AssignGradients(
+            const Vector<Scalar>& /* gradients */,
+            int& /* offset */)
+        {}
+
         virtual std::vector<Scalar> GetParameters() const = 0;
 
         virtual void SetParameters(const std::vector<Scalar>& param) {};

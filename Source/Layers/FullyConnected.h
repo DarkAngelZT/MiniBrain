@@ -95,6 +95,59 @@ namespace MiniBrain
             }            
         }
 
+        virtual int GetAutoDiffParameterCount() const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+                return static_cast<int>(m_weight.size() + m_bias.size());
+            return 0;
+        }
+
+        virtual void AppendAutoDiffParameters(
+            Vector<AutoDiffVar>& destination,
+            int& offset) const override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int weight_size = static_cast<int>(m_weight.size());
+                const int bias_size = static_cast<int>(m_bias.size());
+                const int count = weight_size + bias_size;
+                if(offset < 0 || offset + count > destination.size())
+                    MINIBRAIN_THROW(std::out_of_range("FullyConnected: parameter destination is too small"));
+
+                // Keep the same stable order used by GetParameters/SetParameters:
+                // all column-major weight elements first, followed by the bias.
+                  // AutoDiffVar's copy constructor deliberately creates a new
+                  // dependent-variable wrapper. Eigen's bulk assignment may
+                  // therefore bind the gradient to that wrapper rather than to
+                  // the parameter node used by Forward. Copy ExprPtr directly
+                  // so every entry aliases the exact node in the graph.
+                  for(int i = 0; i < weight_size; ++i)
+                      destination(offset++).expr = m_weight.data()[i].expr;
+                  for(int i = 0; i < bias_size; ++i)
+                      destination(offset++).expr = m_bias.data()[i].expr;
+            }
+        }
+
+        virtual void AssignGradients(
+            const Vector<Scalar>& gradients,
+            int& offset) override
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                const int weight_size = static_cast<int>(m_weight.size());
+                const int bias_size = static_cast<int>(m_bias.size());
+                const int count = weight_size + bias_size;
+                if(offset < 0 || offset + count > gradients.size())
+                    MINIBRAIN_THROW(std::out_of_range("FullyConnected: gradient source is too small"));
+
+                m_dw = gradients.segment(offset, weight_size).reshaped(
+                    m_weight.rows(), m_weight.cols());
+                offset += weight_size;
+                m_db = gradients.segment(offset, bias_size);
+                offset += bias_size;
+            }
+        }
+
         virtual std::vector<Scalar> GetParameters() const override
         {
             if constexpr (std::is_same_v<T, AutoDiffVar>)

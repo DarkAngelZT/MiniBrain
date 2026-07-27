@@ -123,6 +123,60 @@ namespace MiniBrain
             } 
         }
 
+        int GetAutoDiffParameterCount() const
+        {
+            if constexpr (!std::is_same_v<T, AutoDiffVar>)
+                return 0;
+
+            int count = 0;
+            for(const auto& node : m_layers)
+            {
+                if(node->GetType() == "Layer")
+                    count += static_cast<const Layer<T>*>(node.get())->GetAutoDiffParameterCount();
+            }
+            return count;
+        }
+
+        void AppendAutoDiffParameters(
+            Vector<AutoDiffVar>& destination,
+            int& offset) const
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                for(const auto& node : m_layers)
+                {
+                    if(node->GetType() == "Layer")
+                        static_cast<const Layer<T>*>(node.get())->AppendAutoDiffParameters(destination, offset);
+                }
+            }
+        }
+
+        AutoDiffVar EvaluateLoss(
+            const Matrix<T>& Output,
+            const Matrix<T>& Target)
+        {
+            static_assert(
+                std::is_same_v<T, AutoDiffVar>,
+                "EvaluateLoss is available for AutoDiffVar networks only");
+            if(!m_lossFunc)
+                MINIBRAIN_THROW(std::logic_error("[Network]: loss function is not set"));
+            return m_lossFunc->Evaluate(Output, Target);
+        }
+
+        void AssignGradients(
+            const Vector<Scalar>& gradients,
+            int& offset)
+        {
+            if constexpr (std::is_same_v<T, AutoDiffVar>)
+            {
+                for(auto& node : m_layers)
+                {
+                    if(node->GetType() == "Layer")
+                        static_cast<Layer<T>*>(node.get())->AssignGradients(gradients, offset);
+                }
+            }
+        }
+
         Network() :
             m_lossFunc(nullptr),
             m_rng(m_defaultRNG)
