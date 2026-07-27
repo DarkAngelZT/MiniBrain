@@ -60,7 +60,7 @@ namespace MiniBrain
             
             if(InData.rows() != static_cast<Layer<T>*>(m_layers[0].get())->GetInSize())
             {
-                MINIBRAIN_THROW(std::invalid_argument("[Network]: Input data dimension mismatch:"+ std::to_string(InData.rows())+" != "+std::to_string(static_cast<Layer<T>*>(m_layers[0].get())->GetInSize())));
+                MINIBRAIN_THROW(std::invalid_argument("[Network]: Input data dimension mismatch"));
             }
 
             Matrix<T> output = m_layers[0]->Forward(InData);
