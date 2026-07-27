@@ -139,7 +139,7 @@ auto gradient(const Variable<T>& y, Eigen::DenseBase<X>& x)
     for(auto i = 0; i < n; ++i)
         x[i].expr->bind_value(&g[i]);
 
-    y.expr->propagate(1.0);
+    propagate_shared_graph(y.expr, U(1.0));
 
     for(auto i = 0; i < n; ++i)
         x[i].expr->bind_value(nullptr);

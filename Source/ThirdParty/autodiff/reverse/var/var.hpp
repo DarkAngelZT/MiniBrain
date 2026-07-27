@@ -31,10 +31,12 @@
 
 // C++ includes
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <map>
 #include <memory>
 #include <stdexcept>
 
@@ -153,11 +155,15 @@ constexpr auto isVariable = traits::isVariable<T>::value;
 template<typename T>
 struct Expr
 {
+    /// Monotonic construction order. Expression edges always point to older
+    /// nodes, so descending ids form a valid reverse topological order.
+    const std::size_t node_id;
+
     /// The value of this expression node.
     T val = {};
 
     /// Construct an Expr object with given value.
-    explicit Expr(const T& v) : val(v) {}
+    explicit Expr(const T& v) : node_id(next_node_id()), val(v) {}
 
     /// Destructor (to avoid warning)
     virtual ~Expr() {}
@@ -178,7 +184,43 @@ struct Expr
 
     /// Update the value of this expression
     virtual void update() = 0;
+
+private:
+    static std::size_t next_node_id()
+    {
+        static std::atomic_size_t next{0};
+        return next.fetch_add(1, std::memory_order_relaxed);
+    }
 };
+
+/// Accumulates contributions at Variable boundaries and expands those nodes in
+/// reverse construction order. This turns the shared expression DAG into a
+/// single reverse-topological pass instead of recursively revisiting a shared
+/// subgraph once for every path that reaches it.
+template<typename T>
+struct ReversePropagationContext
+{
+    struct Pending
+    {
+        Expr<T>* node;
+        T adjoint;
+    };
+
+    std::map<std::size_t, Pending, std::greater<std::size_t>> pending;
+    Expr<T>* expanding = nullptr;
+
+    void enqueue(Expr<T>* node, const T& adjoint)
+    {
+        auto it = pending.find(node->node_id);
+        if(it == pending.end())
+            pending.emplace(node->node_id, Pending{node, adjoint});
+        else
+            it->second.adjoint += adjoint;
+    }
+};
+
+template<typename T>
+inline thread_local ReversePropagationContext<T>* active_reverse_propagation = nullptr;
 
 /// The node in the expression tree representing either an independent or dependent variable.
 template<typename T>
@@ -234,6 +276,13 @@ struct DependentVariableExpr : VariableExpr<T>
 
     void propagate(const T& wprime) override
     {
+        if(auto* context = active_reverse_propagation<T>;
+           context && context->expanding != this)
+        {
+            context->enqueue(this, wprime);
+            return;
+        }
+
         if(gradPtr) { *gradPtr += wprime; }
         expr->propagate(wprime);
     }
@@ -250,6 +299,40 @@ struct DependentVariableExpr : VariableExpr<T>
         this->val = expr->val;
     }
 };
+
+template<typename T>
+void propagate_shared_graph(const ExprPtr<T>& root, const T& seed)
+{
+    ReversePropagationContext<T> context;
+    struct ContextGuard
+    {
+        ReversePropagationContext<T>*& slot;
+        ReversePropagationContext<T>* previous;
+
+        ContextGuard(
+            ReversePropagationContext<T>*& active_slot,
+            ReversePropagationContext<T>* replacement)
+            : slot(active_slot), previous(active_slot)
+        {
+            slot = replacement;
+        }
+
+        ~ContextGuard() { slot = previous; }
+    } guard(active_reverse_propagation<T>, &context);
+
+    root->propagate(seed);
+
+    while(!context.pending.empty())
+    {
+        auto current = context.pending.begin();
+        const auto pending = current->second;
+        context.pending.erase(current);
+
+        context.expanding = pending.node;
+        pending.node->propagate(pending.adjoint);
+        context.expanding = nullptr;
+    }
+}
 
 template<typename T>
 struct ConstantExpr : Expr<T>
@@ -1455,7 +1538,7 @@ auto derivatives(const Variable<T>& y, const Wrt<Vars...>& wrt)
         std::get<i>(wrt.args).expr->bind_value(&values.at(i));
     });
 
-    y.expr->propagate(1.0);
+    propagate_shared_graph(y.expr, T(1.0));
 
     For<N>([&](auto i) constexpr {
         std::get<i>(wrt.args).expr->bind_value(nullptr);
